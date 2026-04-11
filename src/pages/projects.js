@@ -239,7 +239,7 @@ export default function ProjectsPage() {
       {/* TOP BAR */}
       <header style={{ background:'#fff', borderBottom:'1px solid #E2E8F0', height:'52px', display:'flex', alignItems:'center', padding:'0 24px', gap:'16px', position:'sticky', top:0, zIndex:10 }}>
         <div style={{ fontWeight:700, fontSize:'18px', letterSpacing:'2px', color:'#2563EB', cursor:'pointer' }} onClick={() => router.push('/')}>
-          OR<span style={{ color:'#0EA5E9' }}>ARCH</span>
+         OR<span style={{ color:'#0EA5E9' }}>ARCH</span><span style={{ color:'#2563EB' }}>247</span>
         </div>
         <nav style={{ display:'flex', gap:'4px', marginLeft:'12px' }}>
           {[

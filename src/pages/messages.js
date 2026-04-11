@@ -3,15 +3,11 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
 const mockConversations = [
-  { id: 1, name: 'John Doe', role: 'Project Manager', last: 'Please review the structural drawings.', time: '10:23 AM', unread: 2 },
-  { id: 2, name: 'Jane Smith', role: 'Engineer', last: 'Permit documents have been submitted.', time: 'Yesterday', unread: 0 },
-  { id: 3, name: 'Project Team', role: 'Group', last: 'Meeting rescheduled to Friday.', time: 'Mon', unread: 5 },
+ 
 ];
 
 const mockMessages = [
-  { id: 1, from: 'John Doe', text: 'Please review the structural drawings.', time: '10:20 AM', mine: false },
-  { id: 2, from: 'Me', text: 'Sure, I will check them now.', time: '10:22 AM', mine: true },
-  { id: 3, from: 'John Doe', text: 'Let me know if you need anything.', time: '10:23 AM', mine: false },
+  
 ];
 
 export default function MessagesPage() {
