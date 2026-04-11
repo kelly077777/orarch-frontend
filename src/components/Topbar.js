@@ -1,19 +1,34 @@
+import { useRouter } from 'next/router';
+import { useAuth } from '../hooks/useAuth';
+
 export default function Topbar() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const initials = user
+    ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase()
+    : 'U';
+
   return (
-    <header style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', height: '52px', display: 'flex', alignItems: 'center', padding: '0 20px', gap: '12px' }}>
-      <div style={{ fontWeight: 700, fontSize: '18px', color: '#2563EB', letterSpacing: '2px' }}>
-        OR<span style={{ color: '#0EA5E9' }}>ARCH</span>
+    <header style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', height: '52px', display: 'flex', alignItems: 'center', padding: '0 20px', gap: '12px', flexShrink: 0 }}>
+      {/* Logo */}
+      <div style={{ fontWeight: 800, fontSize: '18px', color: '#2563EB', letterSpacing: '2px', cursor: 'pointer' }} onClick={() => router.push('/')}>
+        OR<span style={{ color: '#0EA5E9' }}>ARCH</span><span style={{ color: '#2563EB' }}>247</span>
       </div>
-      <nav style={{ display: 'flex', gap: '4px', marginLeft: '16px' }}>
-        {['Projects', 'Documents', 'Approvals', 'Team'].map((item) => (
-          <button key={item} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: item === 'Documents' ? '#EFF6FF' : 'transparent', color: item === 'Documents' ? '#2563EB' : '#64748B', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-            {item}
-          </button>
-        ))}
-      </nav>
+
+      {/* Right side */}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <input placeholder="Search documents..." style={{ border: '1px solid #E2E8F0', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', width: '200px', outline: 'none' }} />
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#2563EB', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>AK</div>
+        <input
+          placeholder="Search documents..."
+          style={{ border: '1px solid #E2E8F0', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', width: '200px', outline: 'none' }}
+        />
+        <div style={{ fontSize: '12px', color: '#64748B' }}>{user?.firstName} {user?.lastName}</div>
+        <div
+          title="Logout"
+          onClick={logout}
+          style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#2563EB', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+          {initials}
+        </div>
       </div>
     </header>
   );

@@ -26,11 +26,11 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
       <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '40px', width: '100%', maxWidth: '380px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
-        
+
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{ fontWeight: 800, fontSize: '26px', letterSpacing: '3px', color: '#2563EB' }}>
-            OR<span style={{ color: '#0EA5E9' }}>ARCH</span>
+            OR<span style={{ color: '#0EA5E9' }}>ARCH</span><span style={{ color: '#2563EB' }}>247</span>
           </div>
           <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>Construction Document Management</div>
         </div>
@@ -43,11 +43,10 @@ export default function LoginPage() {
               required
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              placeholder="admin@orarch.com"
+              placeholder="you@yourcompany.com"
               style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', color: '#1E293B' }}
             />
           </div>
-
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Password</label>
             <input
@@ -75,8 +74,14 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '11px', color: '#94A3B8' }}>
-          Default: admin@orarch.com / Admin@1234
+        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#64748B' }}>
+          Don't have an account?{' '}
+          <span
+            onClick={() => router.push('/register')}
+            style={{ color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Sign up free
+          </span>
         </div>
       </div>
     </div>
