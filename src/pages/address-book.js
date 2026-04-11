@@ -3,11 +3,6 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
 const mockContacts = [
-  { id: 1, name: 'John Doe', role: 'Project Manager', company: 'Kigali Construction Ltd', email: 'john@kigaliconst.com', phone: '+250 788 123 456' },
-  { id: 2, name: 'Jane Smith', role: 'Structural Engineer', company: 'Nairobi Engineers Co', email: 'jane@nairobeng.com', phone: '+254 722 987 654' },
-  { id: 3, name: 'Paul Mugisha', role: 'Architect', company: 'Lagos Port Authority', email: 'paul@lagosport.com', phone: '+234 803 456 789' },
-  { id: 4, name: 'Alice Uwera', role: 'Contractor', company: 'Kigali Construction Ltd', email: 'alice@kigaliconst.com', phone: '+250 722 654 321' },
-  { id: 5, name: 'Robert Nkusi', role: 'Site Supervisor', company: 'Nairobi Engineers Co', email: 'robert@nairobeng.com', phone: '+254 733 111 222' },
 ];
 
 export default function AddressBookPage() {
