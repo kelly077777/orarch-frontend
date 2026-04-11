@@ -2,16 +2,14 @@ import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
-const mockConversations = [
- 
-];
+const mockConversations = [];
 
 const mockMessages = [
   
 ];
 
 export default function MessagesPage() {
-  const [active, setActive] = useState(mockConversations[0]);
+ const [active, setActive] = useState(null);
   const [input, setInput] = useState('');
 
   return (
@@ -25,7 +23,7 @@ export default function MessagesPage() {
             <div style={{ padding: '16px', borderBottom: '1px solid #E2E8F0', fontSize: '14px', fontWeight: 700, color: '#1E293B' }}>Messages</div>
             {mockConversations.map(c => (
               <div key={c.id} onClick={() => setActive(c)}
-                style={{ padding: '14px 16px', cursor: 'pointer', background: active.id === c.id ? '#EFF6FF' : 'transparent', borderBottom: '1px solid #F1F5F9' }}>
+                style={{ padding: '14px 16px', cursor: 'pointer', background: active?.id === c.id ? '#EFF6FF' : 'transparent', borderBottom: '1px solid #F1F5F9' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E293B' }}>{c.name}</div>
                   <div style={{ fontSize: '11px', color: '#94A3B8' }}>{c.time}</div>
@@ -42,8 +40,8 @@ export default function MessagesPage() {
           {/* Chat area */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid #E2E8F0', background: '#fff' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B' }}>{active.name}</div>
-              <div style={{ fontSize: '11px', color: '#94A3B8' }}>{active.role}</div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B' }}>{active?.name || 'Select a conversation'}</div>
+<div style={{ fontSize: '11px', color: '#94A3B8' }}>{active?.role || ''}</div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {mockMessages.map(m => (
