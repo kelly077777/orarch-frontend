@@ -3,34 +3,19 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
 const taskData = [
-  { label: 'Completed', count: 12, color: '#16A34A' },
-  { label: 'Open', count: 8, color: '#2563EB' },
-  { label: 'Overdue', count: 3, color: '#DC2626' },
-  { label: 'Canceled', count: 2, color: '#94A3B8' },
+ 
 ];
 
 const topByRole = [
-  { role: 'Project Manager', tasks: 10 },
-  { role: 'Contractor', tasks: 7 },
-  { role: 'Architect', tasks: 5 },
-  { role: 'Engineer', tasks: 3 },
+ 
 ];
 
 const topByUser = [
-  { user: 'John Doe', tasks: 8 },
-  { user: 'Jane Smith', tasks: 6 },
-  { user: 'Paul Mugisha', tasks: 5 },
-  { user: 'Alice Uwera', tasks: 4 },
-  { user: 'Robert Nkusi', tasks: 2 },
+ 
 ];
 
 const folderStats = [
-  { folder: 'Architectural', items: 24, owned: 10, inFolders: 36, size: '128 MB' },
-  { folder: 'Structural', items: 18, owned: 8, inFolders: 22, size: '94 MB' },
-  { folder: 'MEP', items: 12, owned: 5, inFolders: 15, size: '47 MB' },
-  { folder: 'Contracts', items: 8, owned: 8, inFolders: 8, size: '12 MB' },
-  { folder: 'Permits', items: 6, owned: 3, inFolders: 9, size: '8 MB' },
-  { folder: 'Reports', items: 4, owned: 4, inFolders: 4, size: '5 MB' },
+ 
 ];
 
 const total = taskData.reduce((s, t) => s + t.count, 0);

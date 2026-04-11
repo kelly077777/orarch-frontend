@@ -2,11 +2,6 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
 const mockTasks = [
-  { id: 1, title: 'Review structural drawings', project: 'Kigali Heights Tower', assignee: 'John Doe', due: '2026-04-15', status: 'Open', priority: 'High' },
-  { id: 2, title: 'Submit permit documents', project: 'Nairobi Road Bridge', assignee: 'Jane Smith', due: '2026-04-10', status: 'Overdue', priority: 'High' },
-  { id: 3, title: 'Approve MEP plans', project: 'Lagos Port Terminal', assignee: 'Elon Admin', due: '2026-04-20', status: 'Completed', priority: 'Medium' },
-  { id: 4, title: 'Update site photos', project: 'Kigali Heights Tower', assignee: 'John Doe', due: '2026-04-25', status: 'Open', priority: 'Low' },
-  { id: 5, title: 'Client presentation prep', project: 'Nairobi Road Bridge', assignee: 'Jane Smith', due: '2026-04-18', status: 'Canceled', priority: 'Medium' },
 ];
 
 const statusColor = { Open: '#2563EB', Overdue: '#DC2626', Completed: '#16A34A', Canceled: '#94A3B8' };

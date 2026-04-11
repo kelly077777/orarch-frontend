@@ -47,11 +47,7 @@ function ProjectModal({ project, onClose, onSaved }) {
   };
 
   const fields = [
-    { key:'name',        label:'Project Name *', placeholder:'e.g. Kigali Heights Tower' },
-    { key:'clientName',  label:'Client',         placeholder:'Client or owner name' },
-    { key:'location',    label:'Location',       placeholder:'City, Country' },
-    { key:'projectCode', label:'Project Code',   placeholder:'e.g. KHT-2026' },
-    { key:'description', label:'Description',    placeholder:'Brief project description' },
+    
   ];
 
   return (
