@@ -357,6 +357,8 @@ export default function Home() {
          {[
   { label:'Files', path:'/' },
 { label:'Projects', path:'/projects' },
+{ label:'Approvals', path:'/approvals' },
+{ label:'Team', path:'/team' },
 { label:'Address Book', path:'/address-book' },
 { label:'Tasks', path:'/tasks' },
 { label:'Messages', path:'/messages' },
