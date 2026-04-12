@@ -356,6 +356,7 @@ export default function Home() {
         <nav style={{ display:'flex', gap:'4px', marginLeft:'12px' }}>
          {[
   { label:'Files', path:'/' },
+{ label:'Projects', path:'/projects' },
 { label:'Address Book', path:'/address-book' },
 { label:'Tasks', path:'/tasks' },
 { label:'Messages', path:'/messages' },
