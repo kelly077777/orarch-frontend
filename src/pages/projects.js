@@ -46,9 +46,13 @@ function ProjectModal({ project, onClose, onSaved }) {
     }
   };
 
-  const fields = [
-    
-  ];
+ const fields = [
+  { key:'name', label:'Project Name', placeholder:'e.g. My Project' },
+  { key:'clientName', label:'Client', placeholder:'Client name' },
+  { key:'location', label:'Location', placeholder:'City, Country' },
+  { key:'projectCode', label:'Project Code', placeholder:'e.g. PRJ-001' },
+  { key:'description', label:'Description', placeholder:'Project description' },
+];
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }}>
