@@ -4,6 +4,7 @@ const folders = ['Architectural', 'Structural', 'MEP', 'Contracts', 'Permits', '
 
 const menuItems = [
   { label: 'Files', path: '/' },
+  { label: 'Projects', path: '/projects' },
   { label: 'Address Book', path: '/address-book' },
   { label: 'Tasks', path: '/tasks' },
   { label: 'Messages', path: '/messages' },
