@@ -36,19 +36,14 @@ function UserModal({ user: editUser, onClose, onSaved }) {
       if (editUser) {
         await users.update(editUser.id, { firstName: form.firstName, lastName: form.lastName, role: form.role });
       } else {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            firstName: form.firstName,
-            lastName: form.lastName,
-            email: form.email,
-            password: form.password || 'Orarch247@1234',
-            organizationName: 'ORARCH247',
-          }),
-        });
-        if (!res.ok) throw new Error('Failed to create user');
-      }
+  await users.invite({
+    firstName: form.firstName,
+    lastName: form.lastName,
+    email: form.email,
+    password: form.password || 'Orarch247@1234',
+    role: form.role,
+  });
+}
       onSaved();
       onClose();
     } catch (err) {

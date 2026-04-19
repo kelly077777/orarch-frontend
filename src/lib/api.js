@@ -118,6 +118,7 @@ export const users = {
   list: (organizationId) => request(`/users?organizationId=${organizationId}`),
   get: (id) => request(`/users/${id}`),
   update: (id, body) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  invite: (body) => request('/users/invite', { method: 'POST', body: JSON.stringify(body) }),
 };
 
 // ---- STORAGE ----
