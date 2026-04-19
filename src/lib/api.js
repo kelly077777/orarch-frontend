@@ -129,3 +129,30 @@ export const storage = {
 export const audit = {
   list: (organizationId) => request(`/audit?organizationId=${organizationId}`),
 };
+
+// ---- TASKS ----
+export const tasks = {
+  list: (projectId) => request(`/tasks${projectId ? `?projectId=${projectId}` : ''}`),
+  create: (body) => request('/tasks', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id, body) => request(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: (id) => request(`/tasks/${id}`, { method: 'DELETE' }),
+};
+
+
+
+
+
+
+// ---- CONTACTS ----
+export const contacts = {
+  list: () => request('/contacts'),
+  create: (body) => request('/contacts', { method: 'POST', body: JSON.stringify(body) }),
+  delete: (id) => request(`/contacts/${id}`, { method: 'DELETE' }),
+};
+
+// ---- MESSAGES ----
+export const messages = {
+  list: () => request('/messages'),
+  conversation: (receiverId) => request(`/messages/conversation/${receiverId}`),
+  send: (body) => request('/messages', { method: 'POST', body: JSON.stringify(body) }),
+};
