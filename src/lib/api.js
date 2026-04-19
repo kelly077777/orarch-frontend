@@ -27,9 +27,10 @@ async function request(path, options = {}) {
     return;
   }
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
-  return data;
+  const text = await res.text();
+const data = text ? JSON.parse(text) : {};
+if (!res.ok) throw new Error(data.error || data.message || `Request failed with status ${res.status}`);
+return data;
 }
 
 // ---- AUTH ----
