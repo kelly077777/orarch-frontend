@@ -528,7 +528,7 @@ export default function ProjectWorkspace() {
             </div>
           </div>
         </main>
-      </div>
+      </div>../hooks/useAuth
 
       {showUpload && (
         <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} />
