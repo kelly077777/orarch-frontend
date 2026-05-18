@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../hooks/useAuth';
-import { projects, documents, approvals, notifications } from '../lib/api';
+import { useAuth } from '../../hooks/useAuth';
+import { projects, documents, approvals, notifications } from '../../lib/api';
 import Topbar from '../components/Topbar';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
