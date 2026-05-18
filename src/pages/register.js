@@ -16,7 +16,7 @@ export default function RegisterPage() {
       const data = await authApi.register(form);
       localStorage.setItem('orarch_token', data.token);
       localStorage.setItem('orarch_user', JSON.stringify(data));
-      router.push('/');
+      router.push('/projects');
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {

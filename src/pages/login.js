@@ -15,7 +15,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      router.push('/');
+      router.push('/projects');
     } catch (err) {
       setError(err.message || 'Invalid credentials');
     } finally {
