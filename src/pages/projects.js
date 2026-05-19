@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
 import { projects } from '../lib/api';
 import Topbar from '../components/Topbar';
-import Sidebar from '../components/Sidebar';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -285,7 +284,6 @@ export default function ProjectsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'Arial,sans-serif' }}>
       <Topbar />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar />
         <main style={{ flex: 1, background: '#F8FAFC', overflowY: 'auto' }}>
 
           {/* Top bar */}
