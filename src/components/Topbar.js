@@ -13,10 +13,10 @@ export default function Topbar({ hideSearch = false }) {
     <header style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', height: '52px', display: 'flex', alignItems: 'center', padding: '0 20px', gap: '12px', flexShrink: 0 }}>
       {/* Logo */}
       <div style={{ fontWeight: 800, fontSize: '18px', color: '#2563EB', letterSpacing: '2px', cursor: 'pointer' }} onClick={() => router.push('/')}>
-        OR<span style={{ color: '#0EA5E9' }}>ARCH</span><span style={{ color: '#2563EB' }}>24/7</span>
+        OR<span style={{ color: '#0EA5E9' }}>ARCH </span><span style={{ color: '#2563EB' }}>24/7</span>
       </div>
 
-      {/* Right side */}
+      {/* Right--- sides */}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
         {!hideSearch && <input
           placeholder="Search documents..."

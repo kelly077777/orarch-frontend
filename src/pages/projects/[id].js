@@ -58,11 +58,11 @@ function ClockIcon() {
 
 // ── Upload Modal ──────────────────────────────────────────────────────────────
 
-function UploadModal({ projectId, onClose, onUploaded }) {
+function UploadModal({ projectId, onClose, onUploaded, folderList = [] }) {
   const [file, setFile]       = useState(null);
   const [title, setTitle]     = useState('');
   const [docType, setDocType] = useState('DRAWING');
-  const [discipline, setDiscipline] = useState('ARCHITECTURAL');
+  const [discipline, setDiscipline] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const fileRef = useRef();
@@ -111,7 +111,8 @@ function UploadModal({ projectId, onClose, onUploaded }) {
             <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Discipline</label>
             <select value={discipline} onChange={e => setDiscipline(e.target.value)}
               style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', background:'#fff' }}>
-              {['ARCHITECTURAL','STRUCTURAL','MEP','CIVIL','LANDSCAPE'].map(d => <option key={d}>{d}</option>)}
+              <option value="">-- Select folder --</option>
+{folderList.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
             </select>
           </div>
         </div>
@@ -591,7 +592,7 @@ export default function ProjectWorkspace() {
       )}
 
       {showUpload && (
-        <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} />
+        <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} folderList={folderList} />
       )}
       {showApproval && (
         <ApprovalModal document={showApproval} projectId={id} onClose={() => setShowApproval(null)} onSent={loadDocuments} />
