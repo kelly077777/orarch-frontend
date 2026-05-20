@@ -386,13 +386,7 @@ export default function ProjectWorkspace() {
                 )}
               </div>
             )}
-            <button onClick={() => setSidebarCollapsed(c => !c)}
-              style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'4px', marginLeft: sidebarCollapsed ? 'auto' : '0', display:'flex', alignItems:'center', justifyContent:'center' }}
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d={sidebarCollapsed ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+            
           </div>
 
           {/* Nav items */}
@@ -464,6 +458,16 @@ export default function ProjectWorkspace() {
               </div>
             );
           })}
+        <div style={{ marginTop:'auto', borderTop:'1px solid rgba(255,255,255,0.08)', padding:'12px', display:'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end' }}>
+            <button onClick={() => setSidebarCollapsed(c => !c)}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'4px', display:'flex', alignItems:'center', gap:'6px' }}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d={sidebarCollapsed ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {!sidebarCollapsed && <span style={{ fontSize:'11px', color:'#64748B' }}>Collapse</span>}
+            </button>
+          </div>
         </aside>
 
         {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
