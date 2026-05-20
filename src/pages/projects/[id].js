@@ -397,7 +397,7 @@ export default function ProjectWorkspace() {
                 <rect x="2" y="1.5" width="9" height="12" rx="1.5" stroke="#fff" strokeWidth="1.3"/>
                 <path d="M5 5.5h5M5 8h3" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
               </svg>
-              {!sidebarCollapsed && <span style={{ fontSize:'13px', fontWeight:600, color:'#fff' }}>Files</span>}
+              {!sidebarCollapsed && <span style={{ fontSize:'13px', fontWeight:600, color:'#fff' }}>Folders</span>}
             </div>
             {[
               { label:'Address book', icon:'M10 2a4 4 0 11-8 0 4 4 0 018 0zM2 12a6 6 0 0112 0', path:'/address-book' },
