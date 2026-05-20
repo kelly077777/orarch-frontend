@@ -402,25 +402,11 @@ export default function ProjectWorkspace() {
           </div>
 
           {/* Dynamic folders */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px 6px' }}>
+          <div style={{ padding:'12px 16px 6px' }}>
             <span style={{ fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>Folders</span>
-            <button onClick={() => setAddingFolder(true)} style={{ background:'none', border:'none', cursor:'pointer', color:'#60A5FA', fontSize:'18px', lineHeight:1 }} title="New folder">+</button>
           </div>
 
-          {addingFolder && (
-            <div style={{ padding:'4px 16px 8px' }}>
-              <input autoFocus value={newFolderName}
-                onChange={e => setNewFolderName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') createFolder(); if (e.key === 'Escape') { setAddingFolder(false); setNewFolderName(''); } }}
-                placeholder="Folder name..."
-                style={{ width:'100%', background:'rgba(255,255,255,0.1)', border:'1px solid #2563EB', borderRadius:'5px', padding:'5px 8px', fontSize:'12px', color:'#fff', outline:'none', boxSizing:'border-box' }}
-              />
-              <div style={{ display:'flex', gap:'6px', marginTop:'5px' }}>
-                <button onClick={createFolder} style={{ flex:1, background:'#2563EB', color:'#fff', border:'none', borderRadius:'5px', padding:'4px', fontSize:'11px', cursor:'pointer' }}>Create</button>
-                <button onClick={() => { setAddingFolder(false); setNewFolderName(''); }} style={{ flex:1, background:'rgba(255,255,255,0.1)', color:'#94A3B8', border:'none', borderRadius:'5px', padding:'4px', fontSize:'11px', cursor:'pointer' }}>Cancel</button>
-              </div>
-            </div>
-          )}
+          
 
           {folderList.length === 0 && !addingFolder && (
             <div style={{ padding:'6px 16px', fontSize:'11px', color:'#475569' }}>No folders yet</div>
@@ -464,7 +450,8 @@ export default function ProjectWorkspace() {
               style={{ padding:'7px 16px', borderRadius:'6px', border:'none', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
               + Upload
             </button>
-            {['New folder','Download','Share'].map(b => (
+            <button onClick={() => setAddingFolder(true)} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>New folder</button>
+            {['Download','Share'].map(b => (
               <button key={b} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>{b}</button>
             ))}
             <button
@@ -580,6 +567,28 @@ export default function ProjectWorkspace() {
           </div>
         </main>
       </div>
+
+
+      {addingFolder && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }}>
+          <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'380px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ fontSize:'16px', fontWeight:700, color:'#1E293B', marginBottom:'20px' }}>New Folder</div>
+            <div style={{ marginBottom:'20px' }}>
+              <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'6px' }}>Folder Name</label>
+              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') createFolder(); if (e.key === 'Escape') { setAddingFolder(false); setNewFolderName(''); } }}
+                placeholder="e.g. Architectural, Structural..."
+                style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+              <button onClick={() => { setAddingFolder(false); setNewFolderName(''); }}
+                style={{ padding:'8px 18px', border:'1px solid #E2E8F0', borderRadius:'8px', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#475569' }}>Cancel</button>
+              <button onClick={createFolder}
+                style={{ padding:'8px 20px', border:'none', borderRadius:'8px', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showUpload && (
         <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} />
