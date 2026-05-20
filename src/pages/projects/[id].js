@@ -228,6 +228,7 @@ export default function ProjectWorkspace() {
   const [docTypeList, setDocTypeList]       = useState([]);
   const [addingDocType, setAddingDocType]   = useState(false);
   const [newDocTypeName, setNewDocTypeName] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -364,23 +365,34 @@ export default function ProjectWorkspace() {
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────────── */}
-        <aside style={{ width:'240px', background:'#1E293B', color:'#fff', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto' }}>
+        <aside style={{ width: sidebarCollapsed ? '52px' : '240px', background:'#1E293B', color:'#fff', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto', transition:'width 0.2s ease', position:'relative' }}>
 
           {/* Project header */}
-          <div style={{ padding:'16px 16px 12px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', cursor:'pointer', marginBottom:'4px' }}
-              onClick={() => router.push('/projects')}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9 11L5 7L9 3" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span style={{ fontSize:'11px', color:'#94A3B8' }}>All Projects</span>
-            </div>
-            {project && (
-              <div style={{ marginTop:'8px' }}>
-                <div style={{ fontSize:'14px', fontWeight:700, color:'#fff' }}>{project.name}</div>
-                {project.clientName && <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{project.clientName}</div>}
+          <div style={{ padding:'12px 12px 10px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            {!sidebarCollapsed && (
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', marginBottom:'4px' }}
+                  onClick={() => router.push('/projects')}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M9 11L5 7L9 3" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ fontSize:'11px', color:'#94A3B8' }}>All Projects</span>
+                </div>
+                {project && (
+                  <div style={{ marginTop:'6px' }}>
+                    <div style={{ fontSize:'14px', fontWeight:700, color:'#fff' }}>{project.name}</div>
+                    {project.clientName && <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{project.clientName}</div>}
+                  </div>
+                )}
               </div>
             )}
+            <button onClick={() => setSidebarCollapsed(c => !c)}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'4px', marginLeft: sidebarCollapsed ? 'auto' : '0', display:'flex', alignItems:'center', justifyContent:'center' }}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d={sidebarCollapsed ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
           </div>
 
           {/* Nav items */}
@@ -391,7 +403,7 @@ export default function ProjectWorkspace() {
                 <rect x="2" y="1.5" width="9" height="12" rx="1.5" stroke="#fff" strokeWidth="1.3"/>
                 <path d="M5 5.5h5M5 8h3" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
               </svg>
-              <span style={{ fontSize:'13px', fontWeight:600, color:'#fff' }}>Files</span>
+              {!sidebarCollapsed && <span style={{ fontSize:'13px', fontWeight:600, color:'#fff' }}>Files</span>}
             </div>
             {[
               { label:'Address book', icon:'M10 2a4 4 0 11-8 0 4 4 0 018 0zM2 12a6 6 0 0112 0', path:'/address-book' },
@@ -406,7 +418,7 @@ export default function ProjectWorkspace() {
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
                   <path d={item.icon} stroke="#94A3B8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span style={{ fontSize:'13px', color:'#94A3B8' }}>{item.label}</span>
+                {!sidebarCollapsed && <span style={{ fontSize:'13px', color:'#94A3B8' }}>{item.label}</span>}
               </div>
             ))}
           </nav>
@@ -421,13 +433,13 @@ export default function ProjectWorkspace() {
             onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}
           >
             <ClockIcon />
-            <span style={{ fontSize:'12px', color: activeFolder === null ? '#60A5FA' : '#94A3B8', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>
+            {!sidebarCollapsed && <span style={{ fontSize:'12px', color: activeFolder === null ? '#60A5FA' : '#94A3B8', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>}
           </div>
 
           {/* Dynamic folders */}
-          <div style={{ padding:'12px 16px 6px' }}>
+          {!sidebarCollapsed && <div style={{ padding:'12px 16px 6px' }}>
             <span style={{ fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>Folders</span>
-          </div>
+          </div>}
 
           
 
@@ -446,7 +458,7 @@ export default function ProjectWorkspace() {
                 onMouseLeave={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'transparent'; e.currentTarget.querySelector('.del-btn').style.opacity='0'; }}
               >
                 <FolderIcon color={folderColors[i % folderColors.length]} />
-                <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>{f.name}</span>
+                {!sidebarCollapsed && <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>{f.name}</span>}
                 <button className="del-btn" onClick={(e) => deleteFolder(e, f.id)}
                   style={{ background:'none', border:'none', cursor:'pointer', color:'#EF4444', fontSize:'14px', opacity:0, transition:'opacity 0.15s', padding:'0 2px' }}>×</button>
               </div>
