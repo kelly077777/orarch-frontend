@@ -419,7 +419,16 @@ export default function ProjectWorkspace() {
 
           
 
-          
+          {/* Recent files */}
+          <div
+            onClick={() => setActiveFolder(null)}
+            style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: activeFolder === null ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: activeFolder === null ? '3px solid #2563EB' : '3px solid transparent' }}
+            onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
+            onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}
+          >
+            <ClockIcon />
+            {!sidebarCollapsed && <span style={{ fontSize:'12px', color: activeFolder === null ? '#60A5FA' : '#94A3B8', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>}
+          </div>
 
           {/* Dynamic folders */}
           {!sidebarCollapsed && <div style={{ padding:'12px 16px 6px' }}>
