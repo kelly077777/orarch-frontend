@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
 
-export default function Topbar() {
+export default function Topbar({ hideSearch = false }) {
   const router = useRouter();
   const { user, logout } = useAuth();
 
@@ -18,10 +18,10 @@ export default function Topbar() {
 
       {/* Right side */}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <input
+        {!hideSearch && <input
           placeholder="Search documents..."
           style={{ border: '1px solid #E2E8F0', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', width: '200px', outline: 'none' }}
-        />
+        />}
         <div style={{ fontSize: '12px', color: '#64748B' }}>{user?.firstName} {user?.lastName}</div>
         <div
           title="Logout"

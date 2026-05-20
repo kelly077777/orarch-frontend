@@ -282,7 +282,7 @@ export default function ProjectsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'Arial,sans-serif' }}>
-      <Topbar />
+      <Topbar hideSearch />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <main style={{ flex: 1, background: '#F8FAFC', overflowY: 'auto' }}>
 
