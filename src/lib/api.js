@@ -44,6 +44,7 @@ export const projects = {
 export const documents = {
   list: (projectId) => request(`/documents?projectId=${projectId}`),
   get: (id) => request(`/documents/${id}`),
+  create: (body) => request('/documents', { method: 'POST', body: JSON.stringify(body) }),
   upload: async (projectId, file, meta) => {
     const token = getToken();
     const form = new FormData();
