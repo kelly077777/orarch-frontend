@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
-import { projects, documents, approvals, notifications } from '../../lib/api';
+import { projects, documents, approvals, notifications, folders as foldersApi } from '../../lib/api';
 import Topbar from '../../components/Topbar';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -219,6 +219,9 @@ export default function ProjectWorkspace() {
   const [dataLoading, setDataLoading]   = useState(false);
   const [showUpload, setShowUpload]     = useState(false);
   const [showApproval, setShowApproval] = useState(null);
+  const [folderList, setFolderList]     = useState([]);
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -228,8 +231,36 @@ export default function ProjectWorkspace() {
     if (user && id) {
       loadProject();
       loadDocuments();
+      loadFolders();
     }
   }, [user, id]);
+
+
+  const loadFolders = async () => {
+    try {
+      const data = await foldersApi.list(id);
+      setFolderList(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const createFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const folder = await foldersApi.create({ name: newFolderName.trim(), projectId: id, organizationId: user.organizationId });
+      setFolderList(prev => [...prev, folder]);
+      setNewFolderName('');
+      setAddingFolder(false);
+    } catch (err) {
+      alert('Failed to create folder');
+    }
+  };
+  const deleteFolder = async (e, folderId) => {
+    e.stopPropagation();
+    if (!confirm('Delete this folder?')) return;
+    await foldersApi.delete(folderId);
+    setFolderList(prev => prev.filter(f => f.id !== folderId));
+  };
 
   const loadProject = async () => {
     try {
@@ -357,10 +388,7 @@ export default function ProjectWorkspace() {
             ))}
           </nav>
 
-          {/* Folders section */}
-          <div style={{ padding:'12px 16px 6px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>
-            Folders
-          </div>
+          
 
           {/* Recent files */}
           <div
@@ -373,22 +401,45 @@ export default function ProjectWorkspace() {
             <span style={{ fontSize:'12px', color: activeFolder === null ? '#60A5FA' : '#94A3B8', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>
           </div>
 
-          {/* Discipline folders */}
-          {DISCIPLINES.map((d, i) => {
-            const key = d.toUpperCase();
-            const active = activeFolder === key;
+          {/* Dynamic folders */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px 6px' }}>
+            <span style={{ fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>Folders</span>
+            <button onClick={() => setAddingFolder(true)} style={{ background:'none', border:'none', cursor:'pointer', color:'#60A5FA', fontSize:'18px', lineHeight:1 }} title="New folder">+</button>
+          </div>
+
+          {addingFolder && (
+            <div style={{ padding:'4px 16px 8px' }}>
+              <input autoFocus value={newFolderName}
+                onChange={e => setNewFolderName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') createFolder(); if (e.key === 'Escape') { setAddingFolder(false); setNewFolderName(''); } }}
+                placeholder="Folder name..."
+                style={{ width:'100%', background:'rgba(255,255,255,0.1)', border:'1px solid #2563EB', borderRadius:'5px', padding:'5px 8px', fontSize:'12px', color:'#fff', outline:'none', boxSizing:'border-box' }}
+              />
+              <div style={{ display:'flex', gap:'6px', marginTop:'5px' }}>
+                <button onClick={createFolder} style={{ flex:1, background:'#2563EB', color:'#fff', border:'none', borderRadius:'5px', padding:'4px', fontSize:'11px', cursor:'pointer' }}>Create</button>
+                <button onClick={() => { setAddingFolder(false); setNewFolderName(''); }} style={{ flex:1, background:'rgba(255,255,255,0.1)', color:'#94A3B8', border:'none', borderRadius:'5px', padding:'4px', fontSize:'11px', cursor:'pointer' }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {folderList.length === 0 && !addingFolder && (
+            <div style={{ padding:'6px 16px', fontSize:'11px', color:'#475569' }}>No folders yet</div>
+          )}
+
+          {folderList.map((f, i) => {
+            const active = activeFolder === f.name;
             const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
             return (
-              <div key={d}
-                onClick={() => setActiveFolder(key)}
+              <div key={f.id}
+                onClick={() => setActiveFolder(f.name)}
                 style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: active ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.background='transparent'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.04)'; e.currentTarget.querySelector('.del-btn').style.opacity='1'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'transparent'; e.currentTarget.querySelector('.del-btn').style.opacity='0'; }}
               >
-                <ChevronRight />
-                <FolderIcon color={folderColors[i]} />
-                <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>{d}</span>
-                <span style={{ fontSize:'10px', color:'#475569' }}>{disciplineCounts[key] || 0}</span>
+                <FolderIcon color={folderColors[i % folderColors.length]} />
+                <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>{f.name}</span>
+                <button className="del-btn" onClick={(e) => deleteFolder(e, f.id)}
+                  style={{ background:'none', border:'none', cursor:'pointer', color:'#EF4444', fontSize:'14px', opacity:0, transition:'opacity 0.15s', padding:'0 2px' }}>×</button>
               </div>
             );
           })}

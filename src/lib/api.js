@@ -97,3 +97,10 @@ export const messages = {
   conversation: (receiverId) => request(`/messages/conversation/${receiverId}`),
   send: (body) => request('/messages', { method: 'POST', body: JSON.stringify(body) }),
 };
+
+// ---- FOLDERS ----
+export const folders = {
+  list: (projectId) => request(`/folders?projectId=${projectId}`),
+  create: (body) => request('/folders', { method: 'POST', body: JSON.stringify(body) }),
+  delete: (id) => request(`/folders/${id}`, { method: 'DELETE' }),
+};
