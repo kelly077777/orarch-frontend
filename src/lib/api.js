@@ -104,3 +104,10 @@ export const folders = {
   create: (body) => request('/folders', { method: 'POST', body: JSON.stringify(body) }),
   delete: (id) => request(`/folders/${id}`, { method: 'DELETE' }),
 };
+
+// ---- DOCUMENT TYPES ----
+export const documentTypes = {
+  list: (projectId) => request(`/document-types?projectId=${projectId}`),
+  create: (body) => request('/document-types', { method: 'POST', body: JSON.stringify(body) }),
+  delete: (id) => request(`/document-types/${id}`, { method: 'DELETE' }),
+};

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
-import { projects, documents, approvals, notifications, folders as foldersApi } from '../../lib/api';
+import { projects, documents, approvals, notifications, folders as foldersApi, documentTypes as docTypesApi } from '../../lib/api';
 import Topbar from '../../components/Topbar';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -58,10 +58,10 @@ function ClockIcon() {
 
 // ── Upload Modal ──────────────────────────────────────────────────────────────
 
-function UploadModal({ projectId, onClose, onUploaded, folderList = [] }) {
+function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeList = [], onAddDocType }) {
   const [file, setFile]       = useState(null);
   const [title, setTitle]     = useState('');
-  const [docType, setDocType] = useState('DRAWING');
+  const [docType, setDocType] = useState('');
   const [discipline, setDiscipline] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -102,9 +102,11 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [] }) {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'16px' }}>
           <div>
             <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Type</label>
-            <select value={docType} onChange={e => setDocType(e.target.value)}
+            <select value={docType} onChange={e => { if (e.target.value === '__add__') { onAddDocType(); } else { setDocType(e.target.value); } }}
               style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', background:'#fff' }}>
-              {['DRAWING','SPECIFICATION','CONTRACT','REPORT','RFI','SUBMITTAL'].map(t => <option key={t}>{t}</option>)}
+              <option value="">-- Select type --</option>
+              {docTypeList.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+              <option value="__add__">+ Add new type...</option>
             </select>
           </div>
           <div>
@@ -223,6 +225,9 @@ export default function ProjectWorkspace() {
   const [folderList, setFolderList]     = useState([]);
   const [addingFolder, setAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [docTypeList, setDocTypeList]       = useState([]);
+  const [addingDocType, setAddingDocType]   = useState(false);
+  const [newDocTypeName, setNewDocTypeName] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -233,6 +238,7 @@ export default function ProjectWorkspace() {
       loadProject();
       loadDocuments();
       loadFolders();
+      loadDocTypes();
     }
   }, [user, id]);
 
@@ -261,6 +267,22 @@ export default function ProjectWorkspace() {
     if (!confirm('Delete this folder?')) return;
     await foldersApi.delete(folderId);
     setFolderList(prev => prev.filter(f => f.id !== folderId));
+  };
+
+  const loadDocTypes = async () => {
+    try {
+      const data = await docTypesApi.list(id);
+      setDocTypeList(data);
+    } catch (err) { console.error(err); }
+  };
+  const createDocType = async () => {
+    if (!newDocTypeName.trim()) return;
+    try {
+      const type = await docTypesApi.create({ name: newDocTypeName.trim(), projectId: id, organizationId: user.organizationId });
+      setDocTypeList(prev => [...prev, type]);
+      setNewDocTypeName('');
+      setAddingDocType(false);
+    } catch (err) { alert('Failed to create type'); }
   };
 
   const loadProject = async () => {
@@ -570,6 +592,26 @@ export default function ProjectWorkspace() {
       </div>
 
 
+      {addingDocType && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}>
+          <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'380px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ fontSize:'16px', fontWeight:700, color:'#1E293B', marginBottom:'8px' }}>New Document Type</div>
+            <div style={{ fontSize:'12px', color:'#94A3B8', marginBottom:'16px' }}>e.g. Drawing, Specification, Contract, Report, RFI, Submittal, Shop Drawing</div>
+            <input autoFocus value={newDocTypeName} onChange={e => setNewDocTypeName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') createDocType(); if (e.key === 'Escape') { setAddingDocType(false); setNewDocTypeName(''); } }}
+              placeholder="Type name..."
+              style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box', marginBottom:'16px' }} />
+            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+              <button onClick={() => { setAddingDocType(false); setNewDocTypeName(''); }}
+                style={{ padding:'8px 18px', border:'1px solid #E2E8F0', borderRadius:'8px', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#475569' }}>Cancel</button>
+              <button onClick={createDocType}
+                style={{ padding:'8px 20px', border:'none', borderRadius:'8px', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {addingFolder && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }}>
           <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'380px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
@@ -592,7 +634,7 @@ export default function ProjectWorkspace() {
       )}
 
       {showUpload && (
-        <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} folderList={folderList} />
+        <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} folderList={folderList} docTypeList={docTypeList} onAddDocType={() => setAddingDocType(true)} />
       )}
       {showApproval && (
         <ApprovalModal document={showApproval} projectId={id} onClose={() => setShowApproval(null)} onSent={loadDocuments} />
