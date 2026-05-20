@@ -79,7 +79,7 @@ function ViewToggle({ view, setView }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const label = view === 'org' ? 'BY ORGANISATION' : 'LIST';
+  const label = view === 'org' ? 'BY ORGANISATION' : view === 'list' ? 'LIST' : 'GRID';
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -115,7 +115,7 @@ function ViewToggle({ view, setView }) {
           </div>
         )}
       </div>
-      <button onClick={() => setView('grid')} style={{
+      <button onClick={() => setView(view === 'grid' ? 'org' : 'grid')} style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: '32px', height: '32px', border: '1px solid #E2E8F0', borderRadius: '6px', cursor: 'pointer',
         background: view === 'grid' ? '#EFF6FF' : '#fff',
