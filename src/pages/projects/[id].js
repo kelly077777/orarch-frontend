@@ -432,11 +432,7 @@ export default function ProjectWorkspace() {
 
           
 
-          {/* Dynamic folders */}
-          {!sidebarCollapsed && <div style={{ padding:'12px 16px 6px' }}>
-            <span style={{ fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>Folders</span>
-          </div>}
-
+          
           
 
           {folderList.length === 0 && !addingFolder && (
@@ -562,12 +558,69 @@ export default function ProjectWorkspace() {
 
           <div style={{ flex:1, overflowY:'auto', padding:'20px' }}>
 
-            {/* Recent files thumbnails — shown only on "All" view */}
-            {!activeFolder && recentFiles.length > 0 && (
+            {/* Folder cards — shown when no folder is selected */}
+            {!activeFolder && (
               <div style={{ marginBottom:'24px' }}>
-                <div style={{ display:'flex', gap:'12px', overflowX:'auto', paddingBottom:'4px' }}>
-                  {recentFiles.map(f => <FileThumbnail key={f.id} file={f} />)}
-                </div>
+                {folderList.filter(f => !f.parentId).length > 0 && (
+                  <>
+                    <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'12px' }}>Folders</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:'12px', marginBottom:'24px' }}>
+                      {folderList.filter(f => !f.parentId).map((f, i) => {
+                        const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
+                        const fileCount = fileList.filter(file => file.folderId === f.id || file.discipline === f.name).length;
+                        const children = folderList.filter(c => c.parentId === f.id);
+                        return (
+                          <div key={f.id} onClick={() => setActiveFolder(f.id)}
+                            style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'16px', cursor:'pointer', transition:'box-shadow 0.15s' }}
+                            onMouseEnter={e => e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'}
+                            onMouseLeave={e => e.currentTarget.style.boxShadow='none'}>
+                            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' }}>
+                              <FolderIcon color={folderColors[i % folderColors.length]} />
+                              <div>
+                                <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>{f.name}</div>
+                                {f.code && <div style={{ fontSize:'10px', color:'#94A3B8' }}>{f.code}</div>}
+                              </div>
+                            </div>
+                            <div style={{ fontSize:'11px', color:'#94A3B8' }}>
+                              {fileCount} file{fileCount !== 1 ? 's' : ''}
+                              {children.length > 0 && ` · ${children.length} subfolder${children.length !== 1 ? 's' : ''}`}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Back button when inside a folder */}
+            {activeFolder && (
+              <div style={{ marginBottom:'16px', display:'flex', alignItems:'center', gap:'8px' }}>
+                <button onClick={() => setActiveFolder(null)}
+                  style={{ display:'flex', alignItems:'center', gap:'6px', background:'none', border:'none', cursor:'pointer', color:'#2563EB', fontSize:'13px', padding:0 }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M9 11L5 7L9 3" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Back to folders
+                </button>
+                <span style={{ color:'#94A3B8', fontSize:'13px' }}>/ {folderList.find(f => f.id === activeFolder)?.name}</span>
+
+                {/* Subfolders inside active folder */}
+                {folderList.filter(f => f.parentId === activeFolder).length > 0 && (
+                  <div style={{ marginLeft:'auto', display:'flex', gap:'8px' }}>
+                    {folderList.filter(f => f.parentId === activeFolder).map((sf, i) => {
+                      const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
+                      return (
+                        <div key={sf.id} onClick={() => setActiveFolder(sf.id)}
+                          style={{ display:'flex', alignItems:'center', gap:'6px', background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'6px 12px', cursor:'pointer', fontSize:'12px', color:'#475569' }}>
+                          <FolderIcon color={folderColors[i % folderColors.length]} />
+                          {sf.name}{sf.code ? ` (${sf.code})` : ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -575,7 +628,7 @@ export default function ProjectWorkspace() {
             <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <span>
                 {activeFolder
-                  ? `Files — ${activeFolder.charAt(0) + activeFolder.slice(1).toLowerCase()}`
+                  ? `Files — ${folderList.find(f => f.id === activeFolder)?.name || ''}`
                   : `Files — ${project?.name || ''}`
                 }
               </span>
