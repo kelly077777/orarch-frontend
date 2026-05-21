@@ -573,13 +573,24 @@ export default function ProjectWorkspace() {
                 <span>{activeFolder ? `Files — ${folderList.find(f => f.id === activeFolder)?.name || ''}` : `Files — ${project?.name || ''}`}</span>
                 <span style={{ fontWeight:400 }}>{displayFiles.length} document{displayFiles.length !== 1 ? 's' : ''}</span>
               </div>
-              <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'hidden' }}>
+             <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'auto' }}>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead>
                     <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
-                     {['File name','Folder','Description','Type','Version','Uploaded by','Date','Status','Inspector','Action'].map(h => (
-                        <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.04em' }}>{h}</th>
-                      ))}
+                    {[
+  { label:'File name', width:'200px' },
+  { label:'Folder', width:'100px' },
+  { label:'Description', width:'150px' },
+  { label:'Type', width:'100px' },
+  { label:'Version', width:'80px' },
+  { label:'Uploaded by', width:'110px' },
+  { label:'Date', width:'90px' },
+  { label:'Status', width:'90px' },
+  { label:'Inspector', width:'90px' },
+  { label:'Action', width:'120px' },
+].map(h => (
+  <th key={h.label} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.04em', whiteSpace:'nowrap', minWidth: h.width }}>{h.label}</th>
+))}
                     </tr>
                   </thead>
                   <tbody>
