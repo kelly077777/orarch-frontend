@@ -225,6 +225,9 @@ export default function ProjectWorkspace() {
   const [folderList, setFolderList]     = useState([]);
   const [addingFolder, setAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderCode, setNewFolderCode] = useState('');
+  const [newFolderParentId, setNewFolderParentId] = useState('');
+  const [expandedFolders, setExpandedFolders] = useState({});
   const [docTypeList, setDocTypeList]       = useState([]);
   const [addingDocType, setAddingDocType]   = useState(false);
   const [newDocTypeName, setNewDocTypeName] = useState('');
@@ -255,9 +258,17 @@ export default function ProjectWorkspace() {
   const createFolder = async () => {
     if (!newFolderName.trim()) return;
     try {
-      const folder = await foldersApi.create({ name: newFolderName.trim(), projectId: id, organizationId: user.organizationId });
+      const folder = await foldersApi.create({
+        name: newFolderName.trim(),
+        code: newFolderCode.trim(),
+        parentId: newFolderParentId || null,
+        projectId: id,
+        organizationId: user.organizationId
+      });
       setFolderList(prev => [...prev, folder]);
       setNewFolderName('');
+      setNewFolderCode('');
+      setNewFolderParentId('');
       setAddingFolder(false);
     } catch (err) {
       alert('Failed to create folder');
@@ -339,7 +350,7 @@ export default function ProjectWorkspace() {
   const displayFiles = fileList
     .filter(f => {
       if (!activeFolder) return true;
-      return (f.discipline || '').toUpperCase() === activeFolder.toUpperCase();
+      return f.folderId === activeFolder || f.discipline === activeFolder;
     })
     .sort((a, b) => {
       if (sortBy === 'name') return (a.title||'').localeCompare(b.title||'');
@@ -419,16 +430,7 @@ export default function ProjectWorkspace() {
 
           
 
-          {/* Recent files */}
-          <div
-            onClick={() => setActiveFolder(null)}
-            style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: activeFolder === null ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: activeFolder === null ? '3px solid #2563EB' : '3px solid transparent' }}
-            onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
-            onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}
-          >
-            <ClockIcon />
-            {!sidebarCollapsed && <span style={{ fontSize:'12px', color: activeFolder === null ? '#60A5FA' : '#94A3B8', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>}
-          </div>
+          
 
           {/* Dynamic folders */}
           {!sidebarCollapsed && <div style={{ padding:'12px 16px 6px' }}>
@@ -441,20 +443,65 @@ export default function ProjectWorkspace() {
             <div style={{ padding:'6px 16px', fontSize:'11px', color:'#475569' }}>No folders yet</div>
           )}
 
-          {folderList.map((f, i) => {
-            const active = activeFolder === f.name;
+          {/* Tree folder rendering */}
+          {folderList.filter(f => !f.parentId).map((f, i) => {
             const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
+            const children = folderList.filter(c => c.parentId === f.id);
+            const isExpanded = expandedFolders[f.id];
+            const active = activeFolder === f.id;
             return (
-              <div key={f.id}
-                onClick={() => setActiveFolder(f.name)}
-                style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: active ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}
-                onMouseEnter={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.04)'; e.currentTarget.querySelector('.del-btn').style.opacity='1'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'transparent'; e.currentTarget.querySelector('.del-btn').style.opacity='0'; }}
-              >
-                <FolderIcon color={folderColors[i % folderColors.length]} />
-                {!sidebarCollapsed && <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>{f.name}</span>}
-                <button className="del-btn" onClick={(e) => deleteFolder(e, f.id)}
-                  style={{ background:'none', border:'none', cursor:'pointer', color:'#EF4444', fontSize:'14px', opacity:0, transition:'opacity 0.15s', padding:'0 2px' }}>×</button>
+              <div key={f.id}>
+                {/* Root folder */}
+                <div
+                  style={{ display:'flex', alignItems:'center', gap:'6px', padding:'7px 12px', cursor:'pointer', background: active ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.04)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'transparent'; }}
+                >
+                  {children.length > 0 ? (
+                    <button onClick={() => setExpandedFolders(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
+                      style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'0', display:'flex', alignItems:'center' }}>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d={isExpanded ? 'M2 4l4 4 4-4' : 'M4 2l4 4-4 4'} stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  ) : (
+                    <span style={{ width:'12px' }} />
+                  )}
+                  <div onClick={() => setActiveFolder(f.id)} style={{ display:'flex', alignItems:'center', gap:'6px', flex:1 }}>
+                    <FolderIcon color={folderColors[i % folderColors.length]} />
+                    {!sidebarCollapsed && (
+                      <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>
+                        {f.name}{f.code ? <span style={{ fontSize:'10px', color:'#475569', marginLeft:'4px' }}>({f.code})</span> : ''}
+                      </span>
+                    )}
+                  </div>
+                  {!sidebarCollapsed && user?.role === 'ADMIN' && (
+                    <button onClick={(e) => deleteFolder(e, f.id)}
+                      style={{ background:'none', border:'none', cursor:'pointer', color:'#EF4444', fontSize:'14px', opacity:0, transition:'opacity 0.15s', padding:'0 2px' }}
+                      onMouseEnter={e => e.currentTarget.style.opacity='1'}
+                      onMouseLeave={e => e.currentTarget.style.opacity='0'}>×</button>
+                  )}
+                </div>
+
+                {/* Children */}
+                {isExpanded && children.map((child, j) => {
+                  const childActive = activeFolder === child.id;
+                  return (
+                    <div key={child.id}
+                      onClick={() => setActiveFolder(child.id)}
+                      style={{ display:'flex', alignItems:'center', gap:'6px', padding:'6px 12px 6px 28px', cursor:'pointer', background: childActive ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: childActive ? '3px solid #2563EB' : '3px solid transparent' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = childActive ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.04)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = childActive ? 'rgba(37,99,235,0.2)' : 'transparent'; }}
+                    >
+                      <FolderIcon color={folderColors[j % folderColors.length]} />
+                      {!sidebarCollapsed && (
+                        <span style={{ fontSize:'11px', color: childActive ? '#60A5FA' : '#94A3B8', fontWeight: childActive ? 600 : 400, flex:1 }}>
+                          {child.name}{child.code ? <span style={{ fontSize:'10px', color:'#475569', marginLeft:'4px' }}>({child.code})</span> : ''}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -638,17 +685,34 @@ export default function ProjectWorkspace() {
 
       {addingFolder && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }}>
-          <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'380px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
+          <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'420px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
             <div style={{ fontSize:'16px', fontWeight:700, color:'#1E293B', marginBottom:'20px' }}>New Folder</div>
-            <div style={{ marginBottom:'20px' }}>
+            <div style={{ marginBottom:'14px' }}>
               <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'6px' }}>Folder Name</label>
               <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') createFolder(); if (e.key === 'Escape') { setAddingFolder(false); setNewFolderName(''); } }}
-                placeholder="e.g. Architectural, Structural..."
+                onKeyDown={e => { if (e.key === 'Escape') { setAddingFolder(false); setNewFolderName(''); } }}
+                placeholder="e.g. Execution, As Built, Clients..."
                 style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
             </div>
+            <div style={{ marginBottom:'14px' }}>
+              <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'6px' }}>Short Code <span style={{ fontWeight:400, color:'#94A3B8' }}>(optional)</span></label>
+              <input value={newFolderCode} onChange={e => setNewFolderCode(e.target.value.toUpperCase())}
+                placeholder="e.g. EXE, ASB, CLI..."
+                maxLength={10}
+                style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ marginBottom:'20px' }}>
+              <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'6px' }}>Parent Folder <span style={{ fontWeight:400, color:'#94A3B8' }}>(optional)</span></label>
+              <select value={newFolderParentId} onChange={e => setNewFolderParentId(e.target.value)}
+                style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', background:'#fff' }}>
+                <option value="">-- No parent (root folder) --</option>
+                {folderList.filter(f => !f.parentId).map(f => (
+                  <option key={f.id} value={f.id}>{f.name}{f.code ? ` (${f.code})` : ''}</option>
+                ))}
+              </select>
+            </div>
             <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
-              <button onClick={() => { setAddingFolder(false); setNewFolderName(''); }}
+              <button onClick={() => { setAddingFolder(false); setNewFolderName(''); setNewFolderCode(''); setNewFolderParentId(''); }}
                 style={{ padding:'8px 18px', border:'1px solid #E2E8F0', borderRadius:'8px', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#475569' }}>Cancel</button>
               <button onClick={createFolder}
                 style={{ padding:'8px 20px', border:'none', borderRadius:'8px', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>Create</button>
