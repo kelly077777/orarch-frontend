@@ -33,6 +33,7 @@ export default function ReportsPage() {
   const router = useRouter();
   const [tab, setTab] = useState('overview');
   const [docList, setDocList] = useState([]);
+  const [taskList, setTaskList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,11 +49,14 @@ export default function ReportsPage() {
     try {
       const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
       const token = localStorage.getItem('orarch_token');
-      const res = await fetch(`${BASE_URL}/documents/all`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setDocList(Array.isArray(data) ? data : []);
+      const [docsRes, tasksRes] = await Promise.all([
+        fetch(`${BASE_URL}/documents/all`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${BASE_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const docsData = await docsRes.json();
+      const tasksData = await tasksRes.json();
+      setDocList(Array.isArray(docsData) ? docsData : []);
+      setTaskList(Array.isArray(tasksData) ? tasksData : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -65,6 +69,15 @@ export default function ReportsPage() {
     label: s.replace('_', ' '), count: docList.filter(d => d.status === s).length, color: statusColors[s]
   }));
   const totalDocs = docList.length;
+
+  // Task stats
+  const taskStatusCounts = {
+    OPEN: taskList.filter(t => t.status === 'OPEN').length,
+    COMPLETED: taskList.filter(t => t.status === 'COMPLETED').length,
+    OVERDUE: taskList.filter(t => t.status === 'OVERDUE' || (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'COMPLETED')).length,
+    CANCELLED: taskList.filter(t => t.status === 'CANCELLED').length,
+  };
+  const totalTasks = taskList.length;
 
   const typeMap = {};
   docList.forEach(d => { const k = d.documentType || 'Unknown'; typeMap[k] = (typeMap[k] || 0) + 1; });
@@ -106,7 +119,7 @@ export default function ReportsPage() {
           </div>
 
           <div style={{ display:'flex', gap:'4px', marginBottom:'20px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'4px', width:'fit-content' }}>
-            {['overview','by type','by uploader'].map(t => (
+           {['overview','tasks','by type','by uploader'].map(t => (
               <button key={t} onClick={() => setTab(t)}
                 style={{ padding:'6px 16px', border:'none', borderRadius:'6px', fontSize:'12px', fontWeight:600, cursor:'pointer', background: tab===t ? '#2563EB' : 'transparent', color: tab===t ? '#fff' : '#64748B', textTransform:'capitalize' }}>
                 {t}
@@ -159,6 +172,54 @@ export default function ReportsPage() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                </div>
+              )}
+
+
+              {tab === 'tasks' && (
+                <div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'14px', marginBottom:'24px' }}>
+                    {[
+                      { label:'Open', count: taskStatusCounts.OPEN, color:'#2563EB' },
+                      { label:'Completed', count: taskStatusCounts.COMPLETED, color:'#16A34A' },
+                      { label:'Overdue', count: taskStatusCounts.OVERDUE, color:'#DC2626' },
+                      { label:'Cancelled', count: taskStatusCounts.CANCELLED, color:'#94A3B8' },
+                    ].map(d => (
+                      <div key={d.label} style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'16px' }}>
+                        <div style={{ fontSize:'28px', fontWeight:700, color:d.color }}>{d.count}</div>
+                        <div style={{ fontSize:'12px', color:'#64748B', marginTop:'4px' }}>{d.label}</div>
+                        <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{totalTasks ? Math.round(d.count/totalTasks*100) : 0}% of total</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'hidden' }}>
+                    <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                      <thead>
+                        <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
+                          {['Task','Priority','Status','Due Date'].map(h => (
+                            <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {taskList.length === 0 && <tr><td colSpan={4} style={{ padding:'24px', textAlign:'center', color:'#94A3B8' }}>No tasks yet</td></tr>}
+                        {taskList.slice(0,10).map((t, i) => (
+                          <tr key={t.id} style={{ borderBottom: i < taskList.length-1 ? '1px solid #F1F5F9' : 'none' }}>
+                            <td style={{ padding:'10px 14px', fontSize:'13px', color:'#1E293B', fontWeight:500 }}>{t.title}</td>
+                            <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{t.priority || '—'}</td>
+                            <td style={{ padding:'10px 14px' }}>
+                              <span style={{ fontSize:'11px', fontWeight:600, padding:'2px 8px', borderRadius:'12px',
+                                background: t.status==='COMPLETED' ? '#DCFCE7' : t.status==='OPEN' ? '#EFF6FF' : '#FEE2E2',
+                                color: t.status==='COMPLETED' ? '#16A34A' : t.status==='OPEN' ? '#2563EB' : '#DC2626' }}>
+                                {t.status}
+                              </span>
+                            </td>
+                            <td style={{ padding:'10px 14px', fontSize:'12px', color:'#94A3B8' }}>{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
