@@ -624,7 +624,7 @@ export default function ProjectWorkspace() {
                             <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                               <span style={{ background: typeColors[fType]||'#F1F5F9', color: typeText[fType]||'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', minWidth:'36px', textAlign:'center' }}>{fType}</span>
                               <div>
-                                <div style={{ fontWeight:600, color:'#1E293B', fontSize:'13px' }}>{f.title || f.fileName}</div>
+                                <div onClick={() => router.push(`/document-detail?id=${f.id}&projectId=${id}`)} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
                                 <div style={{ fontSize:'11px', color:'#94A3B8' }}>{f.documentType}</div>
                               </div>
                             </div>
