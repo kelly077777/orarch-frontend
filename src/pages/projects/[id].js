@@ -234,6 +234,8 @@ export default function ProjectWorkspace() {
   const [newFolderCode, setNewFolderCode] = useState('');
   const [newFolderParentId, setNewFolderParentId] = useState('');
   const [expandedFolders, setExpandedFolders] = useState({});
+  const [folderFilter, setFolderFilter] = useState('');
+  const [showFolderFilter, setShowFolderFilter] = useState(false);
   const [docTypeList, setDocTypeList]       = useState([]);
   const [addingDocType, setAddingDocType]   = useState(false);
   const [newDocTypeName, setNewDocTypeName] = useState('');
@@ -502,16 +504,31 @@ export default function ProjectWorkspace() {
             <div style={{ width:'260px', borderRight:'1px solid #E2E8F0', background:'#fff', overflowY:'auto', flexShrink:0 }}>
              <div style={{ padding:'12px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <span style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Folders</span>
-                <button style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', display:'flex', alignItems:'center' }} title="Filter folders">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M1 3h12M3 7h8M5 11h4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/>
-                  </svg>
-                </button>
+                <div style={{ position:'relative' }}>
+                  <button onClick={() => setShowFolderFilter(f => !f)} style={{ background:'none', border:'none', cursor:'pointer', color: showFolderFilter ? '#2563EB' : '#94A3B8', display:'flex', alignItems:'center' }} title="Filter folders">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M1 3h12M3 7h8M5 11h4" stroke={showFolderFilter ? '#2563EB' : '#94A3B8'} strokeWidth="1.4" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                  {showFolderFilter && (
+                    <div style={{ position:'absolute', right:0, top:'24px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)', padding:'8px', zIndex:50, width:'180px' }}>
+                      <input autoFocus value={folderFilter} onChange={e => setFolderFilter(e.target.value)}
+                        placeholder="Search folders..."
+                        style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 8px', fontSize:'12px', outline:'none', boxSizing:'border-box' }} />
+                      {folderFilter && (
+                        <button onClick={() => setFolderFilter('')}
+                          style={{ marginTop:'6px', width:'100%', background:'none', border:'none', cursor:'pointer', fontSize:'11px', color:'#94A3B8' }}>
+                          Clear filter
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               {folderList.length === 0 && (
                 <div style={{ padding:'20px 16px', fontSize:'12px', color:'#94A3B8' }}>No folders yet</div>
               )}
-              {folderList.filter(f => !f.parentId).map((f, i) => {
+             {folderList.filter(f => !f.parentId && (folderFilter === '' || f.name.toLowerCase().includes(folderFilter.toLowerCase()) || (f.code && f.code.toLowerCase().includes(folderFilter.toLowerCase())))).map((f, i) => {
                 const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
                 const children = folderList.filter(c => c.parentId === f.id);
                 const isExpanded = expandedFolders[f.id];
