@@ -500,8 +500,13 @@ export default function ProjectWorkspace() {
           <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
             {/* ── FOLDERS PANEL ── */}
             <div style={{ width:'260px', borderRight:'1px solid #E2E8F0', background:'#fff', overflowY:'auto', flexShrink:0 }}>
-              <div style={{ padding:'12px 16px', borderBottom:'1px solid #E2E8F0' }}>
+             <div style={{ padding:'12px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <span style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Folders</span>
+                <button style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', display:'flex', alignItems:'center' }} title="Filter folders">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 3h12M3 7h8M5 11h4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                </button>
               </div>
               {folderList.length === 0 && (
                 <div style={{ padding:'20px 16px', fontSize:'12px', color:'#94A3B8' }}>No folders yet</div>
@@ -572,7 +577,7 @@ export default function ProjectWorkspace() {
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead>
                     <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
-                     {['File name','Folder','Description','Type','Version','Uploaded by','Date','Status','Action'].map(h => (
+                     {['File name','Folder','Description','Type','Version','Uploaded by','Date','Status','Inspector','Action'].map(h => (
                         <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.04em' }}>{h}</th>
                       ))}
                     </tr>
@@ -603,12 +608,14 @@ export default function ProjectWorkspace() {
                           <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{f.documentType || '—'}</td>
                           <td style={{ padding:'10px 14px' }}>
                             <span style={{ background:'#EFF6FF', color:'#2563EB', fontSize:'11px', fontWeight:600, padding:'2px 10px', borderRadius:'20px' }}>v{f.currentVersion || '1.0'}</span>
+                            {f.revisionLabel && <span style={{ background:'#F1F5F9', color:'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', marginLeft:'4px' }}>{f.revisionLabel}</span>}
                           </td>
                           <td style={{ padding:'10px 14px', fontSize:'13px', color:'#64748B' }}>{f.uploadedBy ? f.uploadedBy.toString().slice(0,8)+'…' : user?.firstName}</td>
                           <td style={{ padding:'10px 14px', fontSize:'13px', color:'#94A3B8' }}>{formatDate(f.createdAt)}</td>
                           <td style={{ padding:'10px 14px' }}>
                             <span style={{ background: statusBg[fStatus]||'#F1F5F9', color: statusColor[fStatus]||'#64748B', fontSize:'11px', fontWeight:600, padding:'2px 10px', borderRadius:'20px' }}>{statusLabel[fStatus] || fStatus}</span>
                           </td>
+                          <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>—</td>
                           <td style={{ padding:'10px 14px' }}>
                             <div style={{ display:'flex', gap:'6px' }}>
                               <button onClick={() => handleActionBtn(f)} style={{ fontSize:'11px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'4px 10px', background:'#fff', cursor:'pointer', color:'#475569' }}>{actionLabel(fStatus)}</button>
