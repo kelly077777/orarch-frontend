@@ -106,7 +106,7 @@ export default function ReportsPage() {
       const [docsRes, tasksRes, foldersRes] = await Promise.all([
         fetch(`${BASE_URL}/documents/all`, { headers }),
         fetch(`${BASE_URL}/tasks`, { headers }),
-        fetch(`${BASE_URL}/folders/all`, { headers }).catch(() => ({ json: () => [] })),
+        fetch(`${BASE_URL}/folders/list/all`, { headers }).catch(() => ({ json: () => [] })),
       ]);
       const [docsData, tasksData] = await Promise.all([docsRes.json(), tasksRes.json()]);
       setDocList(Array.isArray(docsData) ? docsData : []);
