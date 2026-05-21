@@ -589,10 +589,12 @@ export default function ProjectWorkspace() {
                               style={{ fontSize:'11px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'4px 10px', background:'#fff', cursor:'pointer', color:'#475569' }}>
                               {actionLabel(fStatus)}
                             </button>
-                            <button onClick={async () => { if (!confirm('Delete this file?')) return; try { await documents.delete(f.id); loadDocuments(); } catch(e) { alert(e.message); } }}
-                              style={{ fontSize:'11px', border:'1px solid #FEE2E2', borderRadius:'6px', padding:'4px 10px', background:'#FFF5F5', cursor:'pointer', color:'#EF4444' }}>
-                              Delete
-                            </button>
+                            {user?.role === 'ADMIN' && (
+                              <button onClick={async () => { if (!confirm('Delete this file?')) return; try { await documents.delete(f.id); loadDocuments(); } catch(e) { alert(e.message); } }}
+                                style={{ fontSize:'11px', border:'1px solid #FEE2E2', borderRadius:'6px', padding:'4px 10px', background:'#FFF5F5', cursor:'pointer', color:'#EF4444' }}>
+                                Delete
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
