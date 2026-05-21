@@ -566,7 +566,7 @@ export default function ProjectWorkspace() {
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead>
                     <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
-                      {['File name','Type','Version','Uploaded by','Date','Status','Action'].map(h => (
+                      {['File name','Folder','Type','Version','Uploaded by','Date','Status','Action'].map(h => (
                         <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.04em' }}>{h}</th>
                       ))}
                     </tr>
@@ -589,6 +589,9 @@ export default function ProjectWorkspace() {
                                 <div style={{ fontSize:'11px', color:'#94A3B8' }}>{f.documentType}</div>
                               </div>
                             </div>
+                          </td>
+                          <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>
+                            {folderList.find(folder => folder.id === f.folderId)?.name || '—'}
                           </td>
                           <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{f.documentType || '—'}</td>
                           <td style={{ padding:'10px 14px' }}>
