@@ -62,7 +62,7 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeL
   const [file, setFile]       = useState(null);
   const [title, setTitle]     = useState('');
   const [docType, setDocType] = useState('');
-  const [discipline, setDiscipline] = useState('');
+ const [folderId, setFolderId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const fileRef = useRef();
@@ -71,11 +71,11 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeL
     if (!file) { setError('Please select a file'); return; }
     setLoading(true); setError('');
     try {
-      await documents.upload(projectId, file, { title: title || file.name, documentType: docType, discipline });
+      await documents.upload(projectId, file, { title: title || file.name, documentType: docType, folderId });
       onUploaded(); onClose();
     } catch {
       try {
-        await documents.create({ projectId, title: title || file.name, documentType: docType, discipline, fileName: file.name, fileSize: file.size, mimeType: file.type, currentVersion: '1.0' });
+        await documents.create({ projectId, title: title || file.name, documentType: docType, folderId, fileName: file.name, fileSize: file.size, mimeType: file.type, currentVersion: '1.0' });
         onUploaded(); onClose();
       } catch (e2) { setError(e2.message || 'Upload failed'); }
     } finally { setLoading(false); }
@@ -110,11 +110,11 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeL
             </select>
           </div>
           <div>
-            <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Discipline</label>
-            <select value={discipline} onChange={e => setDiscipline(e.target.value)}
+           <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Folder</label>
+            <select value={folderId} onChange={e => setFolderId(e.target.value)}
               style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', background:'#fff' }}>
               <option value="">-- Select folder --</option>
-{folderList.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+{folderList.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>
         </div>
