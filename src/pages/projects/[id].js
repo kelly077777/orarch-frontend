@@ -573,8 +573,8 @@ export default function ProjectWorkspace() {
                 <span>{activeFolder ? `Files — ${folderList.find(f => f.id === activeFolder)?.name || ''}` : `Files — ${project?.name || ''}`}</span>
                 <span style={{ fontWeight:400 }}>{displayFiles.length} document{displayFiles.length !== 1 ? 's' : ''}</span>
               </div>
-             <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'auto' }}>
-                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+             <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflowX:'auto' }}>
+               <table style={{ width:'100%', minWidth:'1100px', borderCollapse:'collapse' }}>
                   <thead>
                     <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
                     {[
