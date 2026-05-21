@@ -63,6 +63,7 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeL
   const [title, setTitle]     = useState('');
   const [docType, setDocType] = useState('');
  const [folderId, setFolderId] = useState('');
+ const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const fileRef = useRef();
@@ -75,7 +76,7 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeL
       onUploaded(); onClose();
     } catch {
       try {
-        await documents.create({ projectId, title: title || file.name, documentType: docType, folderId, fileName: file.name, fileSize: file.size, mimeType: file.type, currentVersion: '1.0' });
+        await documents.create({ projectId, title: title || file.name, documentType: docType, folderId, description, fileName: file.name, fileSize: file.size, mimeType: file.type, currentVersion: '1.0' });
         onUploaded(); onClose();
       } catch (e2) { setError(e2.message || 'Upload failed'); }
     } finally { setLoading(false); }
@@ -96,6 +97,11 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeL
         </div>
         <div style={{ marginBottom:'12px' }}>
           <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Title</label>
+          <div style={{ marginBottom:'12px' }}>
+          <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Description <span style={{ fontWeight:400, color:'#94A3B8' }}>(optional)</span></label>
+          <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief description of this document..."
+            style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+        </div>
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Document title"
             style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
         </div>
@@ -566,7 +572,7 @@ export default function ProjectWorkspace() {
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead>
                     <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
-                      {['File name','Folder','Type','Version','Uploaded by','Date','Status','Action'].map(h => (
+                     {['File name','Folder','Description','Type','Version','Uploaded by','Date','Status','Action'].map(h => (
                         <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.04em' }}>{h}</th>
                       ))}
                     </tr>
@@ -592,7 +598,8 @@ export default function ProjectWorkspace() {
                           </td>
                           <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>
                             {folderList.find(folder => folder.id === f.folderId)?.name || '—'}
-                          </td>
+                          </td> 
+                          <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{f.description || '—'}</td>
                           <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{f.documentType || '—'}</td>
                           <td style={{ padding:'10px 14px' }}>
                             <span style={{ background:'#EFF6FF', color:'#2563EB', fontSize:'11px', fontWeight:600, padding:'2px 10px', borderRadius:'20px' }}>v{f.currentVersion || '1.0'}</span>
