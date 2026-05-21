@@ -435,72 +435,7 @@ export default function ProjectWorkspace() {
           
           
 
-          {folderList.length === 0 && !addingFolder && (
-            <div style={{ padding:'6px 16px', fontSize:'11px', color:'#475569' }}>No folders yet</div>
-          )}
-
-          {/* Tree folder rendering */}
-          {folderList.filter(f => !f.parentId).map((f, i) => {
-            const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
-            const children = folderList.filter(c => c.parentId === f.id);
-            const isExpanded = expandedFolders[f.id];
-            const active = activeFolder === f.id;
-            return (
-              <div key={f.id}>
-                {/* Root folder */}
-                <div
-                  style={{ display:'flex', alignItems:'center', gap:'6px', padding:'7px 12px', cursor:'pointer', background: active ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.04)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = active ? 'rgba(37,99,235,0.2)' : 'transparent'; }}
-                >
-                  {children.length > 0 ? (
-                    <button onClick={() => setExpandedFolders(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
-                      style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'0', display:'flex', alignItems:'center' }}>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d={isExpanded ? 'M2 4l4 4 4-4' : 'M4 2l4 4-4 4'} stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                  ) : (
-                    <span style={{ width:'12px' }} />
-                  )}
-                  <div onClick={() => setActiveFolder(f.id)} style={{ display:'flex', alignItems:'center', gap:'6px', flex:1 }}>
-                    <FolderIcon color={folderColors[i % folderColors.length]} />
-                    {!sidebarCollapsed && (
-                      <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>
-                        {f.name}{f.code ? <span style={{ fontSize:'10px', color:'#475569', marginLeft:'4px' }}>({f.code})</span> : ''}
-                      </span>
-                    )}
-                  </div>
-                  {!sidebarCollapsed && user?.role === 'ADMIN' && (
-                    <button onClick={(e) => deleteFolder(e, f.id)}
-                      style={{ background:'none', border:'none', cursor:'pointer', color:'#EF4444', fontSize:'14px', opacity:0, transition:'opacity 0.15s', padding:'0 2px' }}
-                      onMouseEnter={e => e.currentTarget.style.opacity='1'}
-                      onMouseLeave={e => e.currentTarget.style.opacity='0'}>×</button>
-                  )}
-                </div>
-
-                {/* Children */}
-                {isExpanded && children.map((child, j) => {
-                  const childActive = activeFolder === child.id;
-                  return (
-                    <div key={child.id}
-                      onClick={() => setActiveFolder(child.id)}
-                      style={{ display:'flex', alignItems:'center', gap:'6px', padding:'6px 12px 6px 28px', cursor:'pointer', background: childActive ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: childActive ? '3px solid #2563EB' : '3px solid transparent' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = childActive ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.04)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = childActive ? 'rgba(37,99,235,0.2)' : 'transparent'; }}
-                    >
-                      <FolderIcon color={folderColors[j % folderColors.length]} />
-                      {!sidebarCollapsed && (
-                        <span style={{ fontSize:'11px', color: childActive ? '#60A5FA' : '#94A3B8', fontWeight: childActive ? 600 : 400, flex:1 }}>
-                          {child.name}{child.code ? <span style={{ fontSize:'10px', color:'#475569', marginLeft:'4px' }}>({child.code})</span> : ''}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+          
         <div style={{ marginTop:'auto', borderTop:'1px solid rgba(255,255,255,0.08)', padding:'12px', display:'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end' }}>
             <button onClick={() => setSidebarCollapsed(c => !c)}
               style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'4px', display:'flex', alignItems:'center', gap:'6px' }}
