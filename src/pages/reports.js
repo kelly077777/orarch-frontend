@@ -1,103 +1,185 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
-import { users } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { useRouter } from 'next/router';
 
-function DonutChart({ data, total }) {
-  if (total === 0) return <div style={{ width:'160px', height:'160px', display:'flex', alignItems:'center', justifyContent:'center', color:'#94A3B8', fontSize:'12px' }}>No data</div>;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+function getToken() { return typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null; }
+
+function DonutChart({ segments, total, label }) {
+  if (total === 0) return (
+    <div style={{ width:'120px', height:'120px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ fontSize:'24px', fontWeight:700, color:'#1E293B' }}>0</div>
+      <div style={{ fontSize:'11px', color:'#94A3B8' }}>{label}</div>
+    </div>
+  );
   let cumulative = 0;
-  const radius = 60, cx = 80, cy = 80;
-  const circumference = 2 * Math.PI * radius;
+  const r = 48, cx = 60, cy = 60;
+  const circ = 2 * Math.PI * r;
   return (
-    <svg width="160" height="160" viewBox="0 0 160 160">
-      {data.filter(d => d.count > 0).map((d, i) => {
-        const pct = d.count / total;
-        const offset = circumference * (1 - cumulative);
-        cumulative += pct;
-        return (
-          <circle key={i} cx={cx} cy={cy} r={radius} fill="none" stroke={d.color} strokeWidth="28"
-            strokeDasharray={`${circumference * pct} ${circumference * (1 - pct)}`}
-            strokeDashoffset={offset} transform={`rotate(-90 ${cx} ${cy})`} />
-        );
-      })}
-      <text x={cx} y={cy - 6} textAnchor="middle" fontSize="20" fontWeight="700" fill="#1E293B">{total}</text>
-      <text x={cx} y={cy + 12} textAnchor="middle" fontSize="10" fill="#94A3B8">Total Docs</text>
-    </svg>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        {segments.filter(s => s.count > 0).map((s, i) => {
+          const pct = s.count / total;
+          const offset = circ * (1 - cumulative);
+          cumulative += pct;
+          return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth="20"
+            strokeDasharray={`${circ * pct} ${circ * (1 - pct)}`}
+            strokeDashoffset={offset} transform={`rotate(-90 ${cx} ${cy})`} />;
+        })}
+        <text x={cx} y={cy - 6} textAnchor="middle" fontSize="18" fontWeight="700" fill="#1E293B">{total}</text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fontSize="9" fill="#94A3B8">{label}</text>
+      </svg>
+    </div>
+  );
+}
+
+function SummaryDonutRow({ taskList }) {
+  const completed = taskList.filter(t => t.status === 'COMPLETED').length;
+  const open = taskList.filter(t => t.status === 'OPEN' || t.status === 'In Progress').length;
+  const overdue = taskList.filter(t => t.status === 'OVERDUE' || (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'COMPLETED')).length;
+  const cancelled = taskList.filter(t => t.status === 'CANCELLED' || t.status === 'Canceled').length;
+  const segments = [
+    { label:'Completed', count: completed, color:'#16A34A' },
+    { label:'Open', count: open, color:'#F59E0B' },
+    { label:'Overdue', count: overdue, color:'#EF4444' },
+    { label:'Canceled', count: cancelled, color:'#94A3B8' },
+  ];
+  const total = taskList.length;
+  return (
+    <div style={{ display:'flex', gap:'32px', alignItems:'center', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px', marginBottom:'20px' }}>
+      <DonutChart segments={segments} total={total} label="Tasks" />
+      <div style={{ display:'flex', gap:'24px' }}>
+        {segments.map(s => (
+          <div key={s.label} style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            <span style={{ width:'10px', height:'10px', borderRadius:'50%', background:s.color, display:'inline-block' }} />
+            <span style={{ fontSize:'12px', color:'#64748B' }}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'flex', gap:'20px', marginLeft:'auto' }}>
+        {[{ label:'Completed', count: completed, color:'#16A34A' }, { label:'Open', count: open, color:'#F59E0B' }, { label:'Overdue', count: overdue, color:'#EF4444' }, { label:'Canceled', count: cancelled, color:'#94A3B8' }].map(s => (
+          <DonutChart key={s.label} segments={[{ ...s, count: s.count }, { count: total - s.count, color:'#F1F5F9' }]} total={total} label={s.label} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BarRow({ label, completed, open, overdue, cancelled, max }) {
+  const total = completed + open + overdue + cancelled;
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'200px 80px 80px 80px 80px 1fr', gap:'8px', alignItems:'center', padding:'8px 0', borderBottom:'1px solid #F1F5F9' }}>
+      <span style={{ fontSize:'13px', color:'#1E293B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</span>
+      <span style={{ fontSize:'12px', color:'#16A34A', textAlign:'center' }}>{completed}</span>
+      <span style={{ fontSize:'12px', color:'#F59E0B', textAlign:'center' }}>{open}</span>
+      <span style={{ fontSize:'12px', color:'#EF4444', textAlign:'center' }}>{overdue}</span>
+      <span style={{ fontSize:'12px', color:'#94A3B8', textAlign:'center' }}>{cancelled}</span>
+      <div style={{ background:'#F1F5F9', borderRadius:'4px', height:'8px', display:'flex', overflow:'hidden' }}>
+        {completed > 0 && <div style={{ background:'#16A34A', height:'8px', width:`${(completed/max)*100}%` }} />}
+        {open > 0 && <div style={{ background:'#F59E0B', height:'8px', width:`${(open/max)*100}%` }} />}
+        {overdue > 0 && <div style={{ background:'#EF4444', height:'8px', width:`${(overdue/max)*100}%` }} />}
+        {cancelled > 0 && <div style={{ background:'#94A3B8', height:'8px', width:`${(cancelled/max)*100}%` }} />}
+      </div>
+    </div>
   );
 }
 
 export default function ReportsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('dashboard');
   const [docList, setDocList] = useState([]);
   const [taskList, setTaskList] = useState([]);
+  const [folderList, setFolderList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!authLoading && !user) router.push('/login');
-  }, [user, authLoading]);
-
-  useEffect(() => {
-    if (user) loadData();
-  }, [user]);
+  useEffect(() => { if (!authLoading && !user) router.push('/login'); }, [user, authLoading]);
+  useEffect(() => { if (user) loadData(); }, [user]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-      const token = localStorage.getItem('orarch_token');
-      const [docsRes, tasksRes] = await Promise.all([
-        fetch(`${BASE_URL}/documents/all`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${BASE_URL}/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
+      const token = getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const [docsRes, tasksRes, foldersRes] = await Promise.all([
+        fetch(`${BASE_URL}/documents/all`, { headers }),
+        fetch(`${BASE_URL}/tasks`, { headers }),
+        fetch(`${BASE_URL}/folders/all`, { headers }).catch(() => ({ json: () => [] })),
       ]);
-      const docsData = await docsRes.json();
-      const tasksData = await tasksRes.json();
+      const [docsData, tasksData] = await Promise.all([docsRes.json(), tasksRes.json()]);
       setDocList(Array.isArray(docsData) ? docsData : []);
       setTaskList(Array.isArray(tasksData) ? tasksData : []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  const statusColors = { DRAFT:'#94A3B8', IN_REVIEW:'#7C3AED', APPROVED:'#16A34A', REJECTED:'#DC2626', PENDING:'#D97706' };
-  const statusCounts = ['DRAFT','IN_REVIEW','APPROVED','REJECTED','PENDING'].map(s => ({
-    label: s.replace('_', ' '), count: docList.filter(d => d.status === s).length, color: statusColors[s]
-  }));
-  const totalDocs = docList.length;
-
-  // Task stats
-  const taskStatusCounts = {
-    OPEN: taskList.filter(t => t.status === 'OPEN').length,
-    COMPLETED: taskList.filter(t => t.status === 'COMPLETED').length,
-    OVERDUE: taskList.filter(t => t.status === 'OVERDUE' || (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'COMPLETED')).length,
-    CANCELLED: taskList.filter(t => t.status === 'CANCELLED').length,
-  };
-  const totalTasks = taskList.length;
-
-  const typeMap = {};
-  docList.forEach(d => { const k = d.documentType || 'Unknown'; typeMap[k] = (typeMap[k] || 0) + 1; });
-  const byType = Object.entries(typeMap).map(([type, count]) => ({ type, count })).sort((a,b) => b.count - a.count);
-
-  const uploaderMap = {};
-  docList.forEach(d => { const k = d.uploadedBy ? d.uploadedBy.toString().slice(0,8) : 'Unknown'; uploaderMap[k] = (uploaderMap[k] || 0) + 1; });
-  const byUploader = Object.entries(uploaderMap).map(([user, count]) => ({ user, count })).sort((a,b) => b.count - a.count);
-
-  const exportToCSV = () => {
-    if (!docList.length) return alert('No data to export');
-    const headers = ['Title','Status','Type','Date'];
-    const rows = docList.map(d => [d.title || d.fileName, d.status, d.documentType, d.createdAt]);
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type:'text/csv' });
+  const exportToXLS = () => {
+    if (!taskList.length && !docList.length) return alert('No data to export');
+    const taskRows = taskList.map(t => `${t.title}\t${t.status}\t${t.priority}\t${t.assigneeName || ''}\t${t.dueDate || ''}`);
+    const content = ['Title\tStatus\tPriority\tAssignee\tDue Date', ...taskRows].join('\n');
+    const blob = new Blob([content], { type:'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'orarch247_report.csv'; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = 'orarch247_report.xls'; a.click();
     URL.revokeObjectURL(url);
   };
+
+  // By assignee
+  const byAssignee = {};
+  taskList.forEach(t => {
+    const k = t.assigneeName || 'Unassigned';
+    if (!byAssignee[k]) byAssignee[k] = { completed:0, open:0, overdue:0, cancelled:0 };
+    if (t.status === 'COMPLETED') byAssignee[k].completed++;
+    else if (t.status === 'OVERDUE') byAssignee[k].overdue++;
+    else if (t.status === 'CANCELLED') byAssignee[k].cancelled++;
+    else byAssignee[k].open++;
+  });
+  const assigneeRows = Object.entries(byAssignee).sort((a,b) => (b[1].completed+b[1].open) - (a[1].completed+a[1].open));
+  const maxAssignee = Math.max(...assigneeRows.map(([,v]) => v.completed+v.open+v.overdue+v.cancelled), 1);
+
+  // By priority
+  const byPriority = {};
+  taskList.forEach(t => {
+    const k = t.priority || 'MEDIUM';
+    if (!byPriority[k]) byPriority[k] = { completed:0, open:0, overdue:0, cancelled:0 };
+    if (t.status === 'COMPLETED') byPriority[k].completed++;
+    else if (t.status === 'OVERDUE') byPriority[k].overdue++;
+    else if (t.status === 'CANCELLED') byPriority[k].cancelled++;
+    else byPriority[k].open++;
+  });
+  const priorityRows = Object.entries(byPriority);
+  const maxPriority = Math.max(...priorityRows.map(([,v]) => v.completed+v.open+v.overdue+v.cancelled), 1);
+
+  // Doc stats
+  const statusColors = { DRAFT:'#94A3B8', IN_REVIEW:'#7C3AED', APPROVED:'#16A34A', REJECTED:'#DC2626', PENDING:'#D97706' };
+  const docSegments = ['DRAFT','IN_REVIEW','APPROVED','REJECTED','PENDING'].map(s => ({
+    label: s.replace('_',' '), count: docList.filter(d => d.status === s).length, color: statusColors[s]
+  }));
+
+  // Folder stats
+  const folderStats = folderList.map(f => ({
+    name: `${f.name}${f.code ? ` (${f.code})` : ''}`,
+    items: docList.filter(d => d.folderId === f.id).length,
+    owned: docList.filter(d => d.folderId === f.id && d.uploadedBy === user?.id).length,
+    size: docList.filter(d => d.folderId === f.id).reduce((s, d) => s + (d.fileSize || 0), 0),
+  }));
+
+  function formatSize(bytes) {
+    if (!bytes) return '0 B';
+    if (bytes > 1024*1024*1024) return `${(bytes/1024/1024/1024).toFixed(1)} GB`;
+    if (bytes > 1024*1024) return `${(bytes/1024/1024).toFixed(1)} MB`;
+    if (bytes > 1024) return `${(bytes/1024).toFixed(0)} KB`;
+    return `${bytes} B`;
+  }
+
+  const tabs = [
+    { key:'dashboard', label:'Dashboard' },
+    { key:'byUser', label:'By User' },
+    { key:'byPriority', label:'By Priority' },
+    { key:'documents', label:'Documents' },
+    { key:'byFolder', label:'By Folder' },
+  ];
 
   if (authLoading || !user) return null;
 
@@ -106,161 +188,171 @@ export default function ReportsPage() {
       <Topbar />
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <Sidebar />
-        <main style={{ flex:1, background:'#F8FAFC', padding:'24px', overflowY:'auto' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }}>
-            <div>
-              <h1 style={{ fontSize:'18px', fontWeight:700, color:'#1E293B', margin:0 }}>Reports</h1>
-              <p style={{ fontSize:'12px', color:'#94A3B8', margin:'4px 0 0' }}>Project performance and analytics</p>
+        <main style={{ flex:1, background:'#F8FAFC', overflow:'hidden', display:'flex', flexDirection:'column' }}>
+          {/* Header */}
+          <div style={{ background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div style={{ display:'flex', gap:'4px' }}>
+              {tabs.map(t => (
+                <button key={t.key} onClick={() => setTab(t.key)}
+                  style={{ padding:'6px 16px', border:'none', borderRadius:'6px', fontSize:'12px', fontWeight:600, cursor:'pointer', background: tab===t.key ? '#2563EB' : 'transparent', color: tab===t.key ? '#fff' : '#64748B' }}>
+                  {t.label}
+                </button>
+              ))}
             </div>
-            <button onClick={exportToCSV}
-              style={{ background:'#16A34A', color:'#fff', border:'none', borderRadius:'8px', padding:'8px 16px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
-              Export to CSV
+            <button onClick={exportToXLS}
+              style={{ background:'#16A34A', color:'#fff', border:'none', borderRadius:'8px', padding:'8px 16px', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
+              Export to .xls
             </button>
           </div>
 
-          <div style={{ display:'flex', gap:'4px', marginBottom:'20px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'4px', width:'fit-content' }}>
-           {['overview','tasks','by type','by uploader'].map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                style={{ padding:'6px 16px', border:'none', borderRadius:'6px', fontSize:'12px', fontWeight:600, cursor:'pointer', background: tab===t ? '#2563EB' : 'transparent', color: tab===t ? '#fff' : '#64748B', textTransform:'capitalize' }}>
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {loading ? (
-            <div style={{ textAlign:'center', padding:'60px', color:'#94A3B8' }}>Loading reports...</div>
-          ) : (
-            <>
-              {tab === 'overview' && (
-                <div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'14px', marginBottom:'24px' }}>
-                    {statusCounts.map(d => (
-                      <div key={d.label} style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'16px' }}>
-                        <div style={{ fontSize:'28px', fontWeight:700, color:d.color }}>{d.count}</div>
-                        <div style={{ fontSize:'12px', color:'#64748B', marginTop:'4px' }}>{d.label}</div>
-                        <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{totalDocs ? Math.round(d.count/totalDocs*100) : 0}% of total</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:'20px' }}>
-                    <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px', display:'flex', flexDirection:'column', alignItems:'center' }}>
-                      <div style={{ fontSize:'12px', fontWeight:700, color:'#1E293B', marginBottom:'12px' }}>Document Status</div>
-                      <DonutChart data={statusCounts} total={totalDocs} />
-                      <div style={{ marginTop:'12px', width:'100%' }}>
-                        {statusCounts.filter(d => d.count > 0).map(d => (
-                          <div key={d.label} style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px' }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                              <span style={{ width:'10px', height:'10px', borderRadius:'50%', background:d.color, display:'inline-block' }} />
-                              <span style={{ fontSize:'12px', color:'#64748B' }}>{d.label}</span>
-                            </div>
-                            <span style={{ fontSize:'12px', fontWeight:600, color:'#1E293B' }}>{d.count}</span>
-                          </div>
+          <div style={{ flex:1, overflowY:'auto', padding:'24px' }}>
+            {loading ? (
+              <div style={{ textAlign:'center', padding:'60px', color:'#94A3B8' }}>Loading reports...</div>
+            ) : (
+              <>
+                {/* Dashboard */}
+                {tab === 'dashboard' && (
+                  <div>
+                    <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'12px' }}>Summary</div>
+                    <SummaryDonutRow taskList={taskList} />
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px' }}>
+                      <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px' }}>
+                        <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'16px' }}>Top tasks by user</div>
+                        <div style={{ display:'grid', gridTemplateColumns:'200px 80px 80px 80px 80px 1fr', gap:'8px', marginBottom:'8px' }}>
+                          {['','Completed','Open','Overdue','Canceled',''].map((h,i) => (
+                            <span key={i} style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textAlign:'center' }}>{h}</span>
+                          ))}
+                        </div>
+                        {assigneeRows.slice(0,6).map(([name, v]) => (
+                          <BarRow key={name} label={name} completed={v.completed} open={v.open} overdue={v.overdue} cancelled={v.cancelled} max={maxAssignee} />
                         ))}
+                        {assigneeRows.length === 0 && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No tasks yet</div>}
+                      </div>
+                      <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px' }}>
+                        <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'16px' }}>Top tasks by priority</div>
+                        <div style={{ display:'grid', gridTemplateColumns:'200px 80px 80px 80px 80px 1fr', gap:'8px', marginBottom:'8px' }}>
+                          {['','Completed','Open','Overdue','Canceled',''].map((h,i) => (
+                            <span key={i} style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textAlign:'center' }}>{h}</span>
+                          ))}
+                        </div>
+                        {priorityRows.map(([name, v]) => (
+                          <BarRow key={name} label={name} completed={v.completed} open={v.open} overdue={v.overdue} cancelled={v.cancelled} max={maxPriority} />
+                        ))}
+                        {priorityRows.length === 0 && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No tasks yet</div>}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* By User */}
+                {tab === 'byUser' && (
+                  <div>
+                    <SummaryDonutRow taskList={taskList} />
                     <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px' }}>
-                      <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'16px' }}>Recent Documents</div>
-                      {docList.length === 0 && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No documents yet</div>}
-                      {docList.slice(0,8).map((d, i) => (
-                        <div key={d.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom: i<7 ? '1px solid #F1F5F9' : 'none' }}>
-                          <span style={{ fontSize:'13px', color:'#1E293B' }}>{d.title || d.fileName}</span>
-                          <span style={{ fontSize:'11px', fontWeight:600, padding:'2px 8px', borderRadius:'12px',
-                            background: d.status==='APPROVED' ? '#DCFCE7' : d.status==='IN_REVIEW' ? '#EDE9FE' : '#F1F5F9',
-                            color: d.status==='APPROVED' ? '#16A34A' : d.status==='IN_REVIEW' ? '#7C3AED' : '#64748B' }}>
-                            {d.status}
-                          </span>
+                      <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'16px' }}>Tasks by user</div>
+                      <div style={{ display:'grid', gridTemplateColumns:'200px 80px 80px 80px 80px 1fr', gap:'8px', marginBottom:'8px' }}>
+                        {['User','Completed','Open','Overdue','Canceled',''].map((h,i) => (
+                          <span key={i} style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textAlign: i===0?'left':'center' }}>{h}</span>
+                        ))}
+                      </div>
+                      {assigneeRows.map(([name, v]) => (
+                        <BarRow key={name} label={name} completed={v.completed} open={v.open} overdue={v.overdue} cancelled={v.cancelled} max={maxAssignee} />
+                      ))}
+                      {assigneeRows.length === 0 && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No tasks yet</div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* By Priority */}
+                {tab === 'byPriority' && (
+                  <div>
+                    <SummaryDonutRow taskList={taskList} />
+                    <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px' }}>
+                      <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'16px' }}>Tasks by priority</div>
+                      <div style={{ display:'grid', gridTemplateColumns:'200px 80px 80px 80px 80px 1fr', gap:'8px', marginBottom:'8px' }}>
+                        {['Priority','Completed','Open','Overdue','Canceled',''].map((h,i) => (
+                          <span key={i} style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', textAlign: i===0?'left':'center' }}>{h}</span>
+                        ))}
+                      </div>
+                      {priorityRows.map(([name, v]) => (
+                        <BarRow key={name} label={name} completed={v.completed} open={v.open} overdue={v.overdue} cancelled={v.cancelled} max={maxPriority} />
+                      ))}
+                      {priorityRows.length === 0 && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No tasks yet</div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Documents */}
+                {tab === 'documents' && (
+                  <div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'14px', marginBottom:'24px' }}>
+                      {docSegments.map(d => (
+                        <div key={d.label} style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'16px' }}>
+                          <div style={{ fontSize:'28px', fontWeight:700, color:d.color }}>{d.count}</div>
+                          <div style={{ fontSize:'12px', color:'#64748B', marginTop:'4px' }}>{d.label}</div>
+                          <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{docList.length ? Math.round(d.count/docList.length*100) : 0}% of total</div>
                         </div>
                       ))}
                     </div>
+                    <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'hidden' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                        <thead>
+                          <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
+                            {['File Name','Type','Status','Date'].map(h => (
+                              <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {docList.length === 0 && <tr><td colSpan={4} style={{ padding:'24px', textAlign:'center', color:'#94A3B8' }}>No documents yet</td></tr>}
+                          {docList.slice(0,15).map((d,i) => (
+                            <tr key={d.id} style={{ borderBottom: i<docList.length-1 ? '1px solid #F1F5F9' : 'none' }}>
+                              <td style={{ padding:'10px 14px', fontSize:'13px', color:'#1E293B', fontWeight:500 }}>{d.title || d.fileName}</td>
+                              <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{d.documentType || '—'}</td>
+                              <td style={{ padding:'10px 14px' }}>
+                                <span style={{ fontSize:'11px', fontWeight:600, padding:'2px 8px', borderRadius:'12px', background: statusColors[d.status] ? statusColors[d.status]+'20' : '#F1F5F9', color: statusColors[d.status] || '#64748B' }}>
+                                  {d.status}
+                                </span>
+                              </td>
+                              <td style={{ padding:'10px 14px', fontSize:'12px', color:'#94A3B8' }}>{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-
-              {tab === 'tasks' && (
-                <div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'14px', marginBottom:'24px' }}>
-                    {[
-                      { label:'Open', count: taskStatusCounts.OPEN, color:'#2563EB' },
-                      { label:'Completed', count: taskStatusCounts.COMPLETED, color:'#16A34A' },
-                      { label:'Overdue', count: taskStatusCounts.OVERDUE, color:'#DC2626' },
-                      { label:'Cancelled', count: taskStatusCounts.CANCELLED, color:'#94A3B8' },
-                    ].map(d => (
-                      <div key={d.label} style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'16px' }}>
-                        <div style={{ fontSize:'28px', fontWeight:700, color:d.color }}>{d.count}</div>
-                        <div style={{ fontSize:'12px', color:'#64748B', marginTop:'4px' }}>{d.label}</div>
-                        <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{totalTasks ? Math.round(d.count/totalTasks*100) : 0}% of total</div>
-                      </div>
-                    ))}
-                  </div>
+                {/* By Folder */}
+                {tab === 'byFolder' && (
                   <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'hidden' }}>
                     <table style={{ width:'100%', borderCollapse:'collapse' }}>
                       <thead>
                         <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
-                          {['Task','Priority','Status','Due Date'].map(h => (
+                          {['Folder','Items','Owned Items','Size'].map(h => (
                             <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase' }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {taskList.length === 0 && <tr><td colSpan={4} style={{ padding:'24px', textAlign:'center', color:'#94A3B8' }}>No tasks yet</td></tr>}
-                        {taskList.slice(0,10).map((t, i) => (
-                          <tr key={t.id} style={{ borderBottom: i < taskList.length-1 ? '1px solid #F1F5F9' : 'none' }}>
-                            <td style={{ padding:'10px 14px', fontSize:'13px', color:'#1E293B', fontWeight:500 }}>{t.title}</td>
-                            <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{t.priority || '—'}</td>
-                            <td style={{ padding:'10px 14px' }}>
-                              <span style={{ fontSize:'11px', fontWeight:600, padding:'2px 8px', borderRadius:'12px',
-                                background: t.status==='COMPLETED' ? '#DCFCE7' : t.status==='OPEN' ? '#EFF6FF' : '#FEE2E2',
-                                color: t.status==='COMPLETED' ? '#16A34A' : t.status==='OPEN' ? '#2563EB' : '#DC2626' }}>
-                                {t.status}
-                              </span>
-                            </td>
-                            <td style={{ padding:'10px 14px', fontSize:'12px', color:'#94A3B8' }}>{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : '—'}</td>
+                        {folderStats.length === 0 && (
+                          <tr><td colSpan={4} style={{ padding:'24px', textAlign:'center', color:'#94A3B8' }}>No folders yet</td></tr>
+                        )}
+                        {folderStats.map((f,i) => (
+                          <tr key={i} style={{ borderBottom: i<folderStats.length-1 ? '1px solid #F1F5F9' : 'none' }}>
+                            <td style={{ padding:'12px 14px', fontSize:'13px', fontWeight:500, color:'#1E293B' }}>📂 {f.name}</td>
+                            <td style={{ padding:'12px 14px', fontSize:'13px', color:'#64748B' }}>{f.items}</td>
+                            <td style={{ padding:'12px 14px', fontSize:'13px', color:'#64748B' }}>{f.owned}</td>
+                            <td style={{ padding:'12px 14px', fontSize:'13px', color:'#64748B' }}>{formatSize(f.size)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              )}
-
-              {tab === 'by type' && (
-                <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px' }}>
-                  <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'16px' }}>Documents by Type</div>
-                  {byType.length === 0 && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No data yet</div>}
-                  {byType.map(r => (
-                    <div key={r.type} style={{ marginBottom:'14px' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'4px' }}>
-                        <span style={{ fontSize:'13px', color:'#1E293B' }}>{r.type}</span>
-                        <span style={{ fontSize:'13px', fontWeight:600, color:'#2563EB' }}>{r.count} docs</span>
-                      </div>
-                      <div style={{ background:'#F1F5F9', borderRadius:'4px', height:'8px' }}>
-                        <div style={{ background:'#2563EB', borderRadius:'4px', height:'8px', width:`${byType[0] ? (r.count/byType[0].count)*100 : 0}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {tab === 'by uploader' && (
-                <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', padding:'20px' }}>
-                  <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B', marginBottom:'16px' }}>Documents by Uploader</div>
-                  {byUploader.length === 0 && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No data yet</div>}
-                  {byUploader.map(u => (
-                    <div key={u.user} style={{ marginBottom:'14px' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'4px' }}>
-                        <span style={{ fontSize:'13px', color:'#1E293B' }}>{u.user}...</span>
-                        <span style={{ fontSize:'13px', fontWeight:600, color:'#0EA5E9' }}>{u.count} docs</span>
-                      </div>
-                      <div style={{ background:'#F1F5F9', borderRadius:'4px', height:'8px' }}>
-                        <div style={{ background:'#0EA5E9', borderRadius:'4px', height:'8px', width:`${byUploader[0] ? (u.count/byUploader[0].count)*100 : 0}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </main>
       </div>
     </div>
