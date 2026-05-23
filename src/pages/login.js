@@ -27,51 +27,40 @@ export default function LoginPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      {/* Left Panel */}
+
+      {/* Left Panel - white, logo only */}
       <div style={{
-        flex: 1, background: 'linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '60px', color: '#fff',
+        flex: 1, background: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '48px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '52px', height: '52px', background: '#fff', borderRadius: '10px',
+            width: '52px', height: '52px', background: '#2563EB', borderRadius: '10px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect x="4" y="4" width="10" height="10" rx="2" fill="#2563EB"/>
-              <rect x="18" y="4" width="10" height="10" rx="2" fill="#2563EB"/>
-              <rect x="4" y="18" width="10" height="10" rx="2" fill="#2563EB"/>
+              <rect x="4" y="4" width="10" height="10" rx="2" fill="#fff"/>
+              <rect x="18" y="4" width="10" height="10" rx="2" fill="#fff"/>
+              <rect x="4" y="18" width="10" height="10" rx="2" fill="#fff"/>
               <rect x="18" y="18" width="10" height="10" rx="2" fill="#93C5FD"/>
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '2px' }}>ORARCH<span style={{ color: '#93C5FD' }}>247</span></div>
-            <div style={{ fontSize: '11px', color: '#93C5FD', letterSpacing: '1px' }}>CONSTRUCTION DOCUMENT MANAGEMENT</div>
-          </div>
-        </div>
-
-        {/* Features list */}
-        <div style={{ maxWidth: '320px', width: '100%' }}>
-          {[
-            { icon: '📁', text: 'Centralized document management' },
-            { icon: '✅', text: 'Approval workflows & versioning' },
-            { icon: '👥', text: 'Team collaboration & messaging' },
-            { icon: '📊', text: 'Reports & analytics' },
-          ].map((f, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-              <span style={{ fontSize: '20px' }}>{f.icon}</span>
-              <span style={{ fontSize: '14px', color: '#BFDBFE' }}>{f.text}</span>
+            <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '2px', color: '#1E293B' }}>
+              ORARCH<span style={{ color: '#2563EB' }}>247</span>
             </div>
-          ))}
+            <div style={{ fontSize: '11px', color: '#94A3B8', letterSpacing: '1px' }}>
+              CONSTRUCTION DOCUMENT MANAGEMENT
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Right Panel */}
+      {/* Right Panel - form */}
       <div style={{
-        width: '440px', background: '#fff', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', padding: '48px 40px',
+        width: '440px', background: '#fff', borderLeft: '1px solid #E2E8F0',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '48px 40px',
       }}>
         <div style={{ width: '100%', maxWidth: '340px' }}>
           <div style={{ fontSize: '22px', fontWeight: 700, color: '#1E293B', marginBottom: '6px' }}>
@@ -96,8 +85,6 @@ export default function LoginPage() {
                   padding: '10px 12px', fontSize: '13px', outline: 'none',
                   boxSizing: 'border-box', color: '#1E293B', background: '#F8FAFC',
                 }}
-                onFocus={e => e.target.style.borderColor = '#2563EB'}
-                onBlur={e => e.target.style.borderColor = '#CBD5E1'}
               />
             </div>
 
@@ -116,11 +103,9 @@ export default function LoginPage() {
                     padding: '10px 40px 10px 12px', fontSize: '13px', outline: 'none',
                     boxSizing: 'border-box', color: '#1E293B', background: '#F8FAFC',
                   }}
-                  onFocus={e => e.target.style.borderColor = '#2563EB'}
-                  onBlur={e => e.target.style.borderColor = '#CBD5E1'}
                 />
                 <button type="button" onClick={() => setShowPass(s => !s)}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: '12px' }}>
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
                   {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
@@ -129,12 +114,11 @@ export default function LoginPage() {
             {/* Remember me + Forgot password */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#475569' }}>
-                <div onClick={() => setRemember(r => !r)}
-                  style={{
-                    width: '36px', height: '20px', borderRadius: '10px', cursor: 'pointer',
-                    background: remember ? '#2563EB' : '#CBD5E1', transition: 'background 0.2s',
-                    position: 'relative', flexShrink: 0,
-                  }}>
+                <div onClick={() => setRemember(r => !r)} style={{
+                  width: '36px', height: '20px', borderRadius: '10px', cursor: 'pointer',
+                  background: remember ? '#2563EB' : '#CBD5E1', transition: 'background 0.2s',
+                  position: 'relative', flexShrink: 0,
+                }}>
                   <div style={{
                     position: 'absolute', top: '3px', left: remember ? '19px' : '3px',
                     width: '14px', height: '14px', borderRadius: '50%', background: '#fff',
@@ -143,8 +127,7 @@ export default function LoginPage() {
                 </div>
                 Remember me
               </label>
-              <span
-                onClick={() => alert('Contact your administrator to reset your password.')}
+              <span onClick={() => alert('Contact your administrator to reset your password.')}
                 style={{ fontSize: '13px', color: '#2563EB', cursor: 'pointer', fontWeight: 500 }}>
                 Forgot Password?
               </span>
@@ -156,12 +139,11 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button type="submit" disabled={loading}
-              style={{
-                width: '100%', padding: '11px', background: loading ? '#93C5FD' : '#2563EB',
-                color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px',
-                fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', marginBottom: '20px',
-              }}>
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '11px', background: loading ? '#93C5FD' : '#2563EB',
+              color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px',
+              fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', marginBottom: '20px',
+            }}>
               {loading ? 'Signing in...' : 'Log in'}
             </button>
           </form>
@@ -180,11 +162,10 @@ export default function LoginPage() {
               { label: 'G', bg: '#EA4335', title: 'Google' },
               { label: 'in', bg: '#0A66C2', title: 'LinkedIn' },
             ].map((s) => (
-              <button key={s.title} title={s.title}
-                onClick={() => alert(`${s.title} login coming soon`)}
+              <button key={s.title} onClick={() => alert(`${s.title} login coming soon`)}
                 style={{
-                  flex: 1, padding: '9px', background: s.bg, color: '#fff',
-                  border: 'none', borderRadius: '6px', fontSize: '14px',
+                  flex: 1, padding: '9px', background: '#fff', color: s.bg,
+                  border: `2px solid ${s.bg}`, borderRadius: '6px', fontSize: '14px',
                   fontWeight: 700, cursor: 'pointer',
                 }}>
                 {s.label}
