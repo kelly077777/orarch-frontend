@@ -241,7 +241,7 @@ export default function ProjectsPage() {
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading]         = useState(false);
   const [search, setSearch]           = useState('');
-  const [view, setView]               = useState('org');
+  const [view, setView]               = useState('grid');
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
