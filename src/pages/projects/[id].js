@@ -524,7 +524,14 @@ export default function ProjectWorkspace() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div> 
+
+              <div onClick={() => setActiveFolder(null)}
+  style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: activeFolder === null ? '#EFF6FF' : 'transparent', borderLeft: activeFolder === null ? '3px solid #2563EB' : '3px solid transparent' }}
+  onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='#F8FAFC'; }}
+  onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}>
+  <span style={{ fontSize:'12px', fontWeight: activeFolder === null ? 600 : 400, color: activeFolder === null ? '#2563EB' : '#475569' }}>🕐 Recent files</span>
+</div>
               {folderList.length === 0 && (
                 <div style={{ padding:'20px 16px', fontSize:'12px', color:'#94A3B8' }}>No folders yet</div>
               )}
