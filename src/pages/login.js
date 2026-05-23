@@ -148,30 +148,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
-            <span style={{ fontSize: '12px', color: '#94A3B8' }}>Or sign in with</span>
-            <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
-          </div>
-
-          {/* Social buttons */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '28px' }}>
-            {[
-              { label: 'f', bg: '#1877F2', title: 'Facebook' },
-              { label: 'G', bg: '#EA4335', title: 'Google' },
-              { label: 'in', bg: '#0A66C2', title: 'LinkedIn' },
-            ].map((s) => (
-              <button key={s.title} onClick={() => alert(`${s.title} login coming soon`)}
-                style={{
-                  flex: 1, padding: '9px', background: '#fff', color: s.bg,
-                  border: `2px solid ${s.bg}`, borderRadius: '6px', fontSize: '14px',
-                  fontWeight: 700, cursor: 'pointer',
-                }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
+         
 
           {/* Register */}
           <div style={{ textAlign: 'center', fontSize: '13px', color: '#64748B' }}>
