@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
-import { projects, documents, approvals, notifications } from '../../lib/api';
+import { projects, documents, approvals, notifications, folders as foldersApi, documentTypes as docTypesApi } from '../../lib/api';
 import Topbar from '../../components/Topbar';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -58,11 +58,12 @@ function ClockIcon() {
 
 // ── Upload Modal ──────────────────────────────────────────────────────────────
 
-function UploadModal({ projectId, onClose, onUploaded }) {
+function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeList = [], onAddDocType }) {
   const [file, setFile]       = useState(null);
   const [title, setTitle]     = useState('');
-  const [docType, setDocType] = useState('DRAWING');
-  const [discipline, setDiscipline] = useState('ARCHITECTURAL');
+  const [docType, setDocType] = useState('');
+ const [folderId, setFolderId] = useState('');
+ const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const fileRef = useRef();
@@ -71,11 +72,11 @@ function UploadModal({ projectId, onClose, onUploaded }) {
     if (!file) { setError('Please select a file'); return; }
     setLoading(true); setError('');
     try {
-      await documents.upload(projectId, file, { title: title || file.name, documentType: docType, discipline });
+      await documents.upload(projectId, file, { title: title || file.name, documentType: docType, folderId });
       onUploaded(); onClose();
     } catch {
       try {
-        await documents.create({ projectId, title: title || file.name, documentType: docType, discipline, fileName: file.name, fileSize: file.size, mimeType: file.type, currentVersion: '1.0' });
+        await documents.create({ projectId, title: title || file.name, documentType: docType, folderId, description, fileName: file.name, fileSize: file.size, mimeType: file.type, currentVersion: '1.0' });
         onUploaded(); onClose();
       } catch (e2) { setError(e2.message || 'Upload failed'); }
     } finally { setLoading(false); }
@@ -96,22 +97,30 @@ function UploadModal({ projectId, onClose, onUploaded }) {
         </div>
         <div style={{ marginBottom:'12px' }}>
           <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Title</label>
+          <div style={{ marginBottom:'12px' }}>
+          <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Description <span style={{ fontWeight:400, color:'#94A3B8' }}>(optional)</span></label>
+          <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief description of this document..."
+            style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+        </div>
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Document title"
             style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'16px' }}>
           <div>
             <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Type</label>
-            <select value={docType} onChange={e => setDocType(e.target.value)}
+            <select value={docType} onChange={e => { if (e.target.value === '__add__') { onAddDocType(); } else { setDocType(e.target.value); } }}
               style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', background:'#fff' }}>
-              {['DRAWING','SPECIFICATION','CONTRACT','REPORT','RFI','SUBMITTAL'].map(t => <option key={t}>{t}</option>)}
+              <option value="">-- Select type --</option>
+              {docTypeList.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+              <option value="__add__">+ Add new type...</option>
             </select>
           </div>
           <div>
-            <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Discipline</label>
-            <select value={discipline} onChange={e => setDiscipline(e.target.value)}
+           <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Folder</label>
+            <select value={folderId} onChange={e => setFolderId(e.target.value)}
               style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', background:'#fff' }}>
-              {['ARCHITECTURAL','STRUCTURAL','MEP','CIVIL','LANDSCAPE'].map(d => <option key={d}>{d}</option>)}
+              <option value="">-- Select folder --</option>
+{folderList.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>
         </div>
@@ -219,6 +228,18 @@ export default function ProjectWorkspace() {
   const [dataLoading, setDataLoading]   = useState(false);
   const [showUpload, setShowUpload]     = useState(false);
   const [showApproval, setShowApproval] = useState(null);
+  const [folderList, setFolderList]     = useState([]);
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderCode, setNewFolderCode] = useState('');
+  const [newFolderParentId, setNewFolderParentId] = useState('');
+  const [expandedFolders, setExpandedFolders] = useState({});
+  const [folderFilter, setFolderFilter] = useState('');
+  const [showFolderFilter, setShowFolderFilter] = useState(false);
+  const [docTypeList, setDocTypeList]       = useState([]);
+  const [addingDocType, setAddingDocType]   = useState(false);
+  const [newDocTypeName, setNewDocTypeName] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -228,8 +249,61 @@ export default function ProjectWorkspace() {
     if (user && id) {
       loadProject();
       loadDocuments();
+      loadFolders();
+      loadDocTypes();
     }
   }, [user, id]);
+
+
+  const loadFolders = async () => {
+    try {
+      const data = await foldersApi.list(id);
+      setFolderList(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const createFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const folder = await foldersApi.create({
+        name: newFolderName.trim(),
+        code: newFolderCode.trim(),
+        parentId: newFolderParentId || null,
+        projectId: id,
+        organizationId: user.organizationId
+      });
+      setFolderList(prev => [...prev, folder]);
+      setNewFolderName('');
+      setNewFolderCode('');
+      setNewFolderParentId('');
+      setAddingFolder(false);
+    } catch (err) {
+      alert('Failed to create folder');
+    }
+  };
+  const deleteFolder = async (e, folderId) => {
+    e.stopPropagation();
+    if (!confirm('Delete this folder?')) return;
+    await foldersApi.delete(folderId);
+    setFolderList(prev => prev.filter(f => f.id !== folderId));
+  };
+
+  const loadDocTypes = async () => {
+    try {
+      const data = await docTypesApi.list(id);
+      setDocTypeList(data);
+    } catch (err) { console.error(err); }
+  };
+  const createDocType = async () => {
+    if (!newDocTypeName.trim()) return;
+    try {
+      const type = await docTypesApi.create({ name: newDocTypeName.trim(), projectId: id, organizationId: user.organizationId });
+      setDocTypeList(prev => [...prev, type]);
+      setNewDocTypeName('');
+      setAddingDocType(false);
+    } catch (err) { alert('Failed to create type'); }
+  };
 
   const loadProject = async () => {
     try {
@@ -284,7 +358,7 @@ export default function ProjectWorkspace() {
   const displayFiles = fileList
     .filter(f => {
       if (!activeFolder) return true;
-      return (f.discipline || '').toUpperCase() === activeFolder.toUpperCase();
+      return f.folderId === activeFolder || f.discipline === activeFolder;
     })
     .sort((a, b) => {
       if (sortBy === 'name') return (a.title||'').localeCompare(b.title||'');
@@ -310,34 +384,39 @@ export default function ProjectWorkspace() {
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────────── */}
-        <aside style={{ width:'240px', background:'#fff', color:'#1E293B', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto' }}>
+        <aside style={{ width: sidebarCollapsed ? '52px' : '240px', background:'#1E293B', color:'#fff', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto', transition:'width 0.2s ease', position:'relative' }}>
 
           {/* Project header */}
-          <div style={{ padding:'16px 16px 12px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', cursor:'pointer', marginBottom:'4px' }}
-              onClick={() => router.push('/projects')}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9 11L5 7L9 3" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span style={{ fontSize:'11px', color:'#94A3B8' }}>All Projects</span>
-            </div>
-            {project && (
-              <div style={{ marginTop:'8px' }}>
-                <div style={{ fontSize:'14px', fontWeight:700, color:'#fff' }}>{project.name}</div>
-                {project.clientName && <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{project.clientName}</div>}
+          <div style={{ padding:'12px 12px 10px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            {!sidebarCollapsed && (
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', marginBottom:'4px' }}
+                  onClick={() => router.push('/projects')}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M9 11L5 7L9 3" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ fontSize:'11px', color:'#94A3B8' }}>All Projects</span>
+                </div>
+                {project && (
+                  <div style={{ marginTop:'6px' }}>
+                    <div style={{ fontSize:'14px', fontWeight:700, color:'#fff' }}>{project.name}</div>
+                    {project.clientName && <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{project.clientName}</div>}
+                  </div>
+                )}
               </div>
             )}
+            
           </div>
 
           {/* Nav items */}
           <nav style={{ padding:'8px 0' }}>
             {/* Files — active */}
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', background:'#EFF6FF', borderLeft:'3px solid #2563EB', cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', background:'rgba(37,99,235,0.3)', borderLeft:'3px solid #2563EB', cursor:'pointer' }}>
               <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
                 <rect x="2" y="1.5" width="9" height="12" rx="1.5" stroke="#fff" strokeWidth="1.3"/>
                 <path d="M5 5.5h5M5 8h3" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
               </svg>
-              <span style={{ fontSize:'13px', fontWeight:600, color:'#fff' }}>Files</span>
+              {!sidebarCollapsed && <span style={{ fontSize:'13px', fontWeight:600, color:'#fff' }}>Folders</span>}
             </div>
             {[
               { label:'Address book', icon:'M10 2a4 4 0 11-8 0 4 4 0 018 0zM2 12a6 6 0 0112 0', path:'/address-book' },
@@ -352,48 +431,32 @@ export default function ProjectWorkspace() {
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
                   <path d={item.icon} stroke="#94A3B8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span style={{ fontSize:'13px', color:'#475569' }}>{item.label}</span>
+                {!sidebarCollapsed && <span style={{ fontSize:'13px', color:'#94A3B8' }}>{item.label}</span>}
               </div>
             ))}
           </nav>
 
-          {/* Folders section */}
-          <div style={{ padding:'12px 16px 6px', fontSize:'10px', fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.08em' }}>
-            Folders
-          </div>
+          
 
-          {/* Recent files */}
-          <div
-            onClick={() => setActiveFolder(null)}
-            style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: activeFolder === null ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: activeFolder === null ? '3px solid #2563EB' : '3px solid transparent' }}
-            onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
-            onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}
-          >
-            <ClockIcon />
-            <span style={{ fontSize:'12px', color: activeFolder === null ? '#60A5FA' : '#94A3B8', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>
-          </div>
+          
 
-          {/* Discipline folders */}
-          {DISCIPLINES.map((d, i) => {
-            const key = d.toUpperCase();
-            const active = activeFolder === key;
-            const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
-            return (
-              <div key={d}
-                onClick={() => setActiveFolder(key)}
-                style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: active ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.background='transparent'; }}
-              >
-                <ChevronRight />
-                <FolderIcon color={folderColors[i]} />
-                <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>{d}</span>
-                <span style={{ fontSize:'10px', color:'#475569' }}>{disciplineCounts[key] || 0}</span>
-              </div>
-            );
-          })}
+          
+          
+
+          
+        <div style={{ marginTop:'auto', borderTop:'1px solid rgba(255,255,255,0.08)', padding:'12px', display:'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end' }}>
+            <button onClick={() => setSidebarCollapsed(c => !c)}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'4px', display:'flex', alignItems:'center', gap:'6px' }}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d={sidebarCollapsed ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {!sidebarCollapsed && <span style={{ fontSize:'11px', color:'#64748B' }}>Collapse</span>}
+            </button>
+          </div>
         </aside>
 
+       
         {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
         <main style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
@@ -413,7 +476,8 @@ export default function ProjectWorkspace() {
               style={{ padding:'7px 16px', borderRadius:'6px', border:'none', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
               + Upload
             </button>
-            {['New folder','Download','Share'].map(b => (
+            <button onClick={() => setAddingFolder(true)} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>New folder</button>
+            {['Download','Share'].map(b => (
               <button key={b} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>{b}</button>
             ))}
             <button
@@ -435,103 +499,236 @@ export default function ProjectWorkspace() {
               </select>
             </div>
           </div>
-
-          <div style={{ flex:1, overflowY:'auto', padding:'20px' }}>
-
-            {/* Recent files thumbnails — shown only on "All" view */}
-            {!activeFolder && recentFiles.length > 0 && (
-              <div style={{ marginBottom:'24px' }}>
-                <div style={{ display:'flex', gap:'12px', overflowX:'auto', paddingBottom:'4px' }}>
-                  {recentFiles.map(f => <FileThumbnail key={f.id} file={f} />)}
+          <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+            {/* ── FOLDERS PANEL ── */}
+            <div style={{ width:'260px', borderRight:'1px solid #E2E8F0', background:'#fff', overflowY:'auto', flexShrink:0 }}>
+             <div style={{ padding:'12px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <span style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Folders</span>
+                <div style={{ position:'relative' }}>
+                  <button onClick={() => setShowFolderFilter(f => !f)} style={{ background:'none', border:'none', cursor:'pointer', color: showFolderFilter ? '#2563EB' : '#94A3B8', display:'flex', alignItems:'center' }} title="Filter folders">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M1 3h12M3 7h8M5 11h4" stroke={showFolderFilter ? '#2563EB' : '#94A3B8'} strokeWidth="1.4" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                  {showFolderFilter && (
+                    <div style={{ position:'absolute', right:0, top:'24px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', boxShadow:'0 4px 12px rgba(0,0,0,0.1)', padding:'8px', zIndex:50, width:'180px' }}>
+                      <input autoFocus value={folderFilter} onChange={e => setFolderFilter(e.target.value)}
+                        placeholder="Search folders..."
+                        style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 8px', fontSize:'12px', outline:'none', boxSizing:'border-box' }} />
+                      {folderFilter && (
+                        <button onClick={() => setFolderFilter('')}
+                          style={{ marginTop:'6px', width:'100%', background:'none', border:'none', cursor:'pointer', fontSize:'11px', color:'#94A3B8' }}>
+                          Clear filter
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-
-            {/* Table label */}
-            <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <span>
-                {activeFolder
-                  ? `Files — ${activeFolder.charAt(0) + activeFolder.slice(1).toLowerCase()}`
-                  : `Files — ${project?.name || ''}`
-                }
-              </span>
-              <span style={{ fontWeight:400 }}>{displayFiles.length} document{displayFiles.length !== 1 ? 's' : ''}</span>
+              {folderList.length === 0 && (
+                <div style={{ padding:'20px 16px', fontSize:'12px', color:'#94A3B8' }}>No folders yet</div>
+              )}
+             {folderList.filter(f => !f.parentId && (folderFilter === '' || f.name.toLowerCase().includes(folderFilter.toLowerCase()) || (f.code && f.code.toLowerCase().includes(folderFilter.toLowerCase())))).map((f, i) => {
+                const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
+                const children = folderList.filter(c => c.parentId === f.id);
+                const isExpanded = expandedFolders[f.id];
+                const isActive = activeFolder === f.id;
+                return (
+                  <div key={f.id}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 16px', cursor:'pointer', background: isActive ? '#EFF6FF' : 'transparent', borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent' }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background='#F8FAFC'; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background='transparent'; }}>
+                      <button onClick={() => setExpandedFolders(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
+                        style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'0', width:'14px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        {children.length > 0 ? (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                            <path d={isExpanded ? 'M2 3l3 4 3-4' : 'M3 2l4 3-4 3'} stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        ) : <span style={{ width:'10px' }} />}
+                      </button>
+                      <div onClick={() => setActiveFolder(isActive ? null : f.id)} style={{ display:'flex', alignItems:'center', gap:'8px', flex:1 }}>
+                        <FolderIcon color={folderColors[i % folderColors.length]} />
+                        <span style={{ fontSize:'13px', color: isActive ? '#2563EB' : '#475569', fontWeight: isActive ? 600 : 400 }}>
+                          {f.name}{f.code ? <span style={{ fontSize:'10px', color:'#94A3B8', marginLeft:'4px' }}>({f.code})</span> : ''}
+                        </span>
+                      </div>
+                      {user?.role === 'ADMIN' && (
+                        <button onClick={(e) => deleteFolder(e, f.id)}
+                          style={{ background:'none', border:'none', cursor:'pointer', color:'#EF4444', fontSize:'14px', opacity:0, padding:'0 2px' }}
+                          onMouseEnter={e => e.currentTarget.style.opacity='1'}
+                          onMouseLeave={e => e.currentTarget.style.opacity='0'}>×</button>
+                      )}
+                    </div>
+                    {isExpanded && children.map((child, j) => {
+                      const childActive = activeFolder === child.id;
+                      return (
+                        <div key={child.id} onClick={() => setActiveFolder(childActive ? null : child.id)}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', padding:'7px 16px 7px 36px', cursor:'pointer', background: childActive ? '#EFF6FF' : 'transparent', borderLeft: childActive ? '3px solid #2563EB' : '3px solid transparent' }}
+                          onMouseEnter={e => { if (!childActive) e.currentTarget.style.background='#F8FAFC'; }}
+                          onMouseLeave={e => { if (!childActive) e.currentTarget.style.background='transparent'; }}>
+                          <FolderIcon color={folderColors[j % folderColors.length]} />
+                          <span style={{ fontSize:'12px', color: childActive ? '#2563EB' : '#64748B', fontWeight: childActive ? 600 : 400 }}>
+                            {child.name}{child.code ? <span style={{ fontSize:'10px', color:'#94A3B8', marginLeft:'4px' }}>({child.code})</span> : ''}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
-
-            {/* File table */}
-            <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'hidden' }}>
-              <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                <thead>
-                  <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
-                    {['File name','Type','Version','Uploaded by','Date','Status','Action'].map(h => (
-                      <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.04em' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {dataLoading ? (
-                    <tr><td colSpan={7} style={{ padding:'32px', textAlign:'center', color:'#94A3B8', fontSize:'13px' }}>Loading documents...</td></tr>
-                  ) : displayFiles.length === 0 ? (
-                    <tr><td colSpan={7} style={{ padding:'32px', textAlign:'center', color:'#94A3B8', fontSize:'13px' }}>
-                      No documents yet — click Upload to add one
-                    </td></tr>
-                  ) : displayFiles.map((f, i) => {
-                    const fType = getFileType(f.fileName);
-                    const fStatus = f.status || 'DRAFT';
-                    return (
-                      <tr key={f.id} style={{ borderBottom: i < displayFiles.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
-                        <td style={{ padding:'10px 14px' }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-                            <span style={{ background: typeColors[fType]||'#F1F5F9', color: typeText[fType]||'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', minWidth:'36px', textAlign:'center' }}>
-                              {fType}
-                            </span>
-                            <div>
-                              <div style={{ fontWeight:600, color:'#1E293B', fontSize:'13px' }}>{f.title || f.fileName}</div>
-                              <div style={{ fontSize:'11px', color:'#94A3B8' }}>{f.documentType}</div>
+            {/* ── FILES PANEL ── */}
+            <div style={{ flex:1, overflowY:'auto', padding:'20px' }}>
+              {!activeFolder && recentFiles.length > 0 && (
+                <div style={{ marginBottom:'24px' }}>
+                  <div style={{ display:'flex', gap:'12px', overflowX:'auto', paddingBottom:'4px' }}>
+                    {recentFiles.map(f => <FileThumbnail key={f.id} file={f} />)}
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'12px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span>{activeFolder ? `Files — ${folderList.find(f => f.id === activeFolder)?.name || ''}` : `Files — ${project?.name || ''}`}</span>
+                <span style={{ fontWeight:400 }}>{displayFiles.length} document{displayFiles.length !== 1 ? 's' : ''}</span>
+              </div>
+             <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflowX:'auto' }}>
+               <table style={{ width:'100%', minWidth:'1100px', borderCollapse:'collapse' }}>
+                  <thead>
+                    <tr style={{ background:'#F8FAFC', borderBottom:'1px solid #E2E8F0' }}>
+                    {[
+  { label:'File name', width:'200px' },
+  { label:'Folder', width:'100px' },
+  { label:'Description', width:'150px' },
+  { label:'Type', width:'100px' },
+  { label:'Version', width:'80px' },
+  { label:'Uploaded by', width:'110px' },
+  { label:'Date', width:'90px' },
+  { label:'Status', width:'90px' },
+  { label:'Inspector', width:'90px' },
+  { label:'Action', width:'120px' },
+].map(h => (
+  <th key={h.label} style={{ padding:'10px 14px', textAlign:'left', fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.04em', whiteSpace:'nowrap', minWidth: h.width }}>{h.label}</th>
+))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dataLoading ? (
+                      <tr><td colSpan={7} style={{ padding:'32px', textAlign:'center', color:'#94A3B8', fontSize:'13px' }}>Loading documents...</td></tr>
+                    ) : displayFiles.length === 0 ? (
+                      <tr><td colSpan={7} style={{ padding:'32px', textAlign:'center', color:'#94A3B8', fontSize:'13px' }}>No documents yet — click Upload to add one</td></tr>
+                    ) : displayFiles.map((f, i) => {
+                      const fType = getFileType(f.fileName);
+                      const fStatus = f.status || 'DRAFT';
+                      return (
+                        <tr key={f.id} style={{ borderBottom: i < displayFiles.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                          <td style={{ padding:'10px 14px' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+                              <span style={{ background: typeColors[fType]||'#F1F5F9', color: typeText[fType]||'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', minWidth:'36px', textAlign:'center' }}>{fType}</span>
+                              <div>
+                                <div onClick={() => router.push(`/document-detail?id=${f.id}&projectId=${id}`)} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
+                                <div style={{ fontSize:'11px', color:'#94A3B8' }}>{f.documentType}</div>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{f.documentType || '—'}</td>
-                        <td style={{ padding:'10px 14px' }}>
-                          <span style={{ background:'#EFF6FF', color:'#2563EB', fontSize:'11px', fontWeight:600, padding:'2px 10px', borderRadius:'20px' }}>
-                            v{f.currentVersion || '1.0'}
-                          </span>
-                        </td>
-                        <td style={{ padding:'10px 14px', fontSize:'13px', color:'#64748B' }}>
-                          {f.uploadedBy ? f.uploadedBy.toString().slice(0,8)+'…' : user?.firstName}
-                        </td>
-                        <td style={{ padding:'10px 14px', fontSize:'13px', color:'#94A3B8' }}>{formatDate(f.createdAt)}</td>
-                        <td style={{ padding:'10px 14px' }}>
-                          <span style={{ background: statusBg[fStatus]||'#F1F5F9', color: statusColor[fStatus]||'#64748B', fontSize:'11px', fontWeight:600, padding:'2px 10px', borderRadius:'20px' }}>
-                            {statusLabel[fStatus] || fStatus}
-                          </span>
-                        </td>
-                        <td style={{ padding:'10px 14px' }}>
-                          <button onClick={() => handleActionBtn(f)}
-                            style={{ fontSize:'11px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'4px 10px', background:'#fff', cursor:'pointer', color:'#475569' }}>
-                            {actionLabel(fStatus)}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Drop zone */}
-            <div onClick={() => setShowUpload(true)}
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); setShowUpload(true); }}
-              style={{ marginTop:'16px', border:'1.5px dashed #93C5FD', borderRadius:'12px', background:'#EFF6FF', padding:'20px', textAlign:'center', fontSize:'13px', color:'#94A3B8', cursor:'pointer' }}>
-              Drag and drop files here to upload, or click <strong style={{ color:'#2563EB' }}>Upload</strong> above
+                          </td>
+                          <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>
+                            {folderList.find(folder => folder.id === f.folderId)?.name || '—'}
+                          </td> 
+                          <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{f.description || '—'}</td>
+                          <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>{f.documentType || '—'}</td>
+                          <td style={{ padding:'10px 14px' }}>
+                            <span style={{ background:'#EFF6FF', color:'#2563EB', fontSize:'11px', fontWeight:600, padding:'2px 10px', borderRadius:'20px' }}>v{f.currentVersion || '1.0'}</span>
+                            {f.revisionLabel && <span style={{ background:'#F1F5F9', color:'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', marginLeft:'4px' }}>{f.revisionLabel}</span>}
+                          </td>
+                          <td style={{ padding:'10px 14px', fontSize:'13px', color:'#64748B' }}>{f.uploadedBy ? f.uploadedBy.toString().slice(0,8)+'…' : user?.firstName}</td>
+                          <td style={{ padding:'10px 14px', fontSize:'13px', color:'#94A3B8' }}>{formatDate(f.createdAt)}</td>
+                          <td style={{ padding:'10px 14px' }}>
+                            <span style={{ background: statusBg[fStatus]||'#F1F5F9', color: statusColor[fStatus]||'#64748B', fontSize:'11px', fontWeight:600, padding:'2px 10px', borderRadius:'20px' }}>{statusLabel[fStatus] || fStatus}</span>
+                          </td>
+                          <td style={{ padding:'10px 14px', fontSize:'12px', color:'#64748B' }}>—</td>
+                          <td style={{ padding:'10px 14px' }}>
+                            <div style={{ display:'flex', gap:'6px' }}>
+                              <button onClick={() => handleActionBtn(f)} style={{ fontSize:'11px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'4px 10px', background:'#fff', cursor:'pointer', color:'#475569' }}>{actionLabel(fStatus)}</button>
+                              {user?.role === 'ADMIN' && (
+                                <button onClick={async () => { if (!confirm('Delete this file?')) return; try { await documents.delete(f.id); loadDocuments(); } catch(e) { alert(e.message); } }}
+                                  style={{ fontSize:'11px', border:'1px solid #FEE2E2', borderRadius:'6px', padding:'4px 10px', background:'#FFF5F5', cursor:'pointer', color:'#EF4444' }}>Delete</button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div onClick={() => setShowUpload(true)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); setShowUpload(true); }}
+                style={{ marginTop:'16px', border:'1.5px dashed #93C5FD', borderRadius:'12px', background:'#EFF6FF', padding:'20px', textAlign:'center', fontSize:'13px', color:'#94A3B8', cursor:'pointer' }}>
+                Drag and drop files here to upload, or click <strong style={{ color:'#2563EB' }}>Upload</strong> above
+              </div>
             </div>
           </div>
         </main>
       </div>
 
+
+      {addingDocType && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}>
+          <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'380px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ fontSize:'16px', fontWeight:700, color:'#1E293B', marginBottom:'8px' }}>New Document Type</div>
+            <div style={{ fontSize:'12px', color:'#94A3B8', marginBottom:'16px' }}>e.g. Drawing, Specification, Contract, Report, RFI, Submittal, Shop Drawing</div>
+            <input autoFocus value={newDocTypeName} onChange={e => setNewDocTypeName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') createDocType(); if (e.key === 'Escape') { setAddingDocType(false); setNewDocTypeName(''); } }}
+              placeholder="Type name..."
+              style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box', marginBottom:'16px' }} />
+            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+              <button onClick={() => { setAddingDocType(false); setNewDocTypeName(''); }}
+                style={{ padding:'8px 18px', border:'1px solid #E2E8F0', borderRadius:'8px', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#475569' }}>Cancel</button>
+              <button onClick={createDocType}
+                style={{ padding:'8px 20px', border:'none', borderRadius:'8px', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {addingFolder && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }}>
+          <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'420px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ fontSize:'16px', fontWeight:700, color:'#1E293B', marginBottom:'20px' }}>New Folder</div>
+            <div style={{ marginBottom:'14px' }}>
+              <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'6px' }}>Folder Name</label>
+              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setAddingFolder(false); setNewFolderName(''); } }}
+                placeholder="e.g. Execution, As Built, Clients..."
+                style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ marginBottom:'14px' }}>
+              <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'6px' }}>Short Code <span style={{ fontWeight:400, color:'#94A3B8' }}>(optional)</span></label>
+              <input value={newFolderCode} onChange={e => setNewFolderCode(e.target.value.toUpperCase())}
+                placeholder="e.g. EXE, ASB, CLI..."
+                maxLength={10}
+                style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ marginBottom:'20px' }}>
+              <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'6px' }}>Parent Folder <span style={{ fontWeight:400, color:'#94A3B8' }}>(optional)</span></label>
+              <select value={newFolderParentId} onChange={e => setNewFolderParentId(e.target.value)}
+                style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px', fontSize:'13px', background:'#fff' }}>
+                <option value="">-- No parent (root folder) --</option>
+                {folderList.filter(f => !f.parentId).map(f => (
+                  <option key={f.id} value={f.id}>{f.name}{f.code ? ` (${f.code})` : ''}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+              <button onClick={() => { setAddingFolder(false); setNewFolderName(''); setNewFolderCode(''); setNewFolderParentId(''); }}
+                style={{ padding:'8px 18px', border:'1px solid #E2E8F0', borderRadius:'8px', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#475569' }}>Cancel</button>
+              <button onClick={createFolder}
+                style={{ padding:'8px 20px', border:'none', borderRadius:'8px', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showUpload && (
-        <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} />
+        <UploadModal projectId={id} onClose={() => setShowUpload(false)} onUploaded={loadDocuments} folderList={folderList} docTypeList={docTypeList} onAddDocType={() => setAddingDocType(true)} />
       )}
       {showApproval && (
         <ApprovalModal document={showApproval} projectId={id} onClose={() => setShowApproval(null)} onSent={loadDocuments} />
