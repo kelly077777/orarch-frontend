@@ -347,7 +347,7 @@ export default function ProjectWorkspace() {
             ].map(item => (
               <div key={item.label} onClick={() => router.push(item.path)}
                 style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', cursor:'pointer', borderLeft:'3px solid transparent' }}
-                onMouseEnter={e => { e.currentTarget.style.background='#F8FAFC'; }}
+                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background='transparent'; }}>
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
                   <path d={item.icon} stroke="#94A3B8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -366,31 +366,32 @@ export default function ProjectWorkspace() {
           <div
             onClick={() => setActiveFolder(null)}
             style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: activeFolder === null ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: activeFolder === null ? '3px solid #2563EB' : '3px solid transparent' }}
-            onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='#F8FAFC'; }}
+            onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
             onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}
           >
             <ClockIcon />
-            <span style={{ fontSize:'12px', color: activeFolder === null ? '#2563EB' : '#475569', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>
+            <span style={{ fontSize:'12px', color: activeFolder === null ? '#60A5FA' : '#94A3B8', fontWeight: activeFolder === null ? 600 : 400 }}>Recent files</span>
           </div>
 
-         {folderList.length === 0 && (
-  <div style={{ padding:'6px 16px', fontSize:'12px', color:'#CBD5E1' }}>No folders yet</div>
-)}
-{folderList.filter(f => !f.parentId).map((f, i) => {
-  const isActive = activeFolder === f.id;
-  const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6','#EC4899'];
-  return (
-    <div key={f.id} onClick={() => setActiveFolder(isActive ? null : f.id)}
-      style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: isActive ? '#EFF6FF' : 'transparent', borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent' }}
-      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background='#F8FAFC'; }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background='transparent'; }}>
-      <FolderIcon color={folderColors[i % folderColors.length]} />
-      <span style={{ fontSize:'12px', color: isActive ? '#2563EB' : '#475569', fontWeight: isActive ? 600 : 400 }}>
-        {f.name}{f.code ? ` (${f.code})` : ''}
-      </span>
-    </div>
-  );
-})}
+          {/* Discipline folders */}
+          {DISCIPLINES.map((d, i) => {
+            const key = d.toUpperCase();
+            const active = activeFolder === key;
+            const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6'];
+            return (
+              <div key={d}
+                onClick={() => setActiveFolder(key)}
+                style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 16px', cursor:'pointer', background: active ? 'rgba(37,99,235,0.2)' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background='transparent'; }}
+              >
+                <ChevronRight />
+                <FolderIcon color={folderColors[i]} />
+                <span style={{ fontSize:'12px', color: active ? '#60A5FA' : '#94A3B8', fontWeight: active ? 600 : 400, flex:1 }}>{d}</span>
+                <span style={{ fontSize:'10px', color:'#475569' }}>{disciplineCounts[key] || 0}</span>
+              </div>
+            );
+          })}
         </aside>
 
         {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
