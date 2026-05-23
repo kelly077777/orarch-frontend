@@ -384,77 +384,127 @@ export default function ProjectWorkspace() {
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────────── */}
-        <aside style={{ width: sidebarCollapsed ? '52px' : '240px', background:'#1E293B', color:'#fff', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto', transition:'width 0.2s ease', position:'relative' }}>
+        {/* ── NARROW DARK ICON STRIP ── */}
+<div style={{ width:'48px', background:'#1E293B', display:'flex', flexDirection:'column', alignItems:'center', paddingTop:'12px', flexShrink:0, gap:'4px' }}>
+  {[
+    { title:'Files', active:true, path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title:'Address Book', path:'/address-book', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title:'Tasks', path:'/tasks', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 7h10M4 11h7M4 3h14" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title:'Messages', path:'/messages', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { title:'Reports', path:'/reports', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 14V6l4 4 4-4 4 4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+  ].map(item => (
+    <button key={item.title} title={item.title} onClick={() => item.path && router.push(item.path)}
+      style={{ width:'38px', height:'38px', borderRadius:'8px', background: item.active ? 'rgba(255,255,255,0.15)' : 'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}
+      onMouseEnter={e => { if (!item.active) e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
+      onMouseLeave={e => { if (!item.active) e.currentTarget.style.background='transparent'; }}>
+      {item.icon}
+    </button>
+  ))}
+  <div style={{ marginTop:'auto', paddingBottom:'12px' }}>
+    <button onClick={() => setSidebarCollapsed(c => !c)} title="Collapse"
+      style={{ width:'38px', height:'38px', borderRadius:'8px', background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#64748B' }}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 3L5 8l5 5" stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</div>
 
-          {/* Project header */}
-          <div style={{ padding:'12px 12px 10px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            {!sidebarCollapsed && (
-              <div>
-                <div style={{ display:'flex', alignItems:'center', gap:'8px', cursor:'pointer', marginBottom:'4px' }}
-                  onClick={() => router.push('/projects')}>
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M9 11L5 7L9 3" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+{/* ── WHITE FOLDER PANEL ── */}
+{!sidebarCollapsed && (
+  <aside style={{ width:'220px', background:'#fff', borderRight:'1px solid #E2E8F0', display:'flex', flexDirection:'column', flexShrink:0 }}>
+    {/* Files header */}
+    <div style={{ padding:'14px 16px 10px', borderBottom:'1px solid #F1F5F9', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1.5" width="10" height="13" rx="1.5" fill="#EFF6FF" stroke="#2563EB" strokeWidth="1.3"/><path d="M5 5.5h6M5 8h4" stroke="#2563EB" strokeWidth="1.3" strokeLinecap="round"/></svg>
+        <span style={{ fontSize:'14px', fontWeight:700, color:'#1E293B' }}>Files</span>
+      </div>
+      <button style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', display:'flex' }} title="Toggle view">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/></svg>
+      </button>
+    </div>
+
+    <div style={{ flex:1, overflowY:'auto' }}>
+      {/* Recent files */}
+      <div onClick={() => setActiveFolder(null)}
+        style={{ display:'flex', alignItems:'center', gap:'8px', padding:'9px 16px', cursor:'pointer', background: activeFolder === null ? '#EFF6FF' : 'transparent', borderLeft: activeFolder === null ? '3px solid #2563EB' : '3px solid transparent' }}
+        onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='#F8FAFC'; }}
+        onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}>
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke={activeFolder === null ? '#2563EB' : '#94A3B8'} strokeWidth="1.3"/><path d="M6.5 4v2.5l1.5 1.5" stroke={activeFolder === null ? '#2563EB' : '#94A3B8'} strokeWidth="1.3" strokeLinecap="round"/></svg>
+        <span style={{ fontSize:'13px', fontWeight: activeFolder === null ? 600 : 400, color: activeFolder === null ? '#2563EB' : '#475569' }}>Recent files</span>
+      </div>
+
+      {/* Folders header */}
+      <div style={{ padding:'10px 16px 4px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <span style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.07em' }}>Folders</span>
+        <button onClick={() => setAddingFolder(true)} style={{ background:'none', border:'none', cursor:'pointer', color:'#2563EB', fontSize:'18px', lineHeight:1 }}>+</button>
+      </div>
+
+      {/* Folder list */}
+      {folderList.length === 0 && (
+        <div style={{ padding:'6px 16px', fontSize:'12px', color:'#CBD5E1' }}>No folders yet</div>
+      )}
+      {folderList.filter(f => !f.parentId).map((f, i) => {
+        const children = folderList.filter(c => c.parentId === f.id);
+        const isExpanded = expandedFolders[f.id];
+        const isActive = activeFolder === f.id;
+        const folderColors = ['#3B82F6','#F59E0B','#10B981','#6B7280','#8B5CF6','#EC4899'];
+        return (
+          <div key={f.id}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'7px 16px', cursor:'pointer', background: isActive ? '#EFF6FF' : 'transparent', borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent' }}
+              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background='#F8FAFC'; }}
+              onMouseLeave={e => { if (!isActive) e.currentTarget.style.background='transparent'; }}>
+              {children.length > 0 ? (
+                <button onClick={() => setExpandedFolders(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
+                  style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:0, display:'flex', width:'12px' }}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d={isExpanded ? 'M2 3l3 4 3-4' : 'M3 2l4 3-4 3'} stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <span style={{ fontSize:'11px', color:'#94A3B8' }}>All Projects</span>
-                </div>
-                {project && (
-                  <div style={{ marginTop:'6px' }}>
-                    <div style={{ fontSize:'14px', fontWeight:700, color:'#fff' }}>{project.name}</div>
-                    {project.clientName && <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{project.clientName}</div>}
-                  </div>
-                )}
+                </button>
+              ) : <span style={{ width:'12px' }} />}
+              <div onClick={() => setActiveFolder(isActive ? null : f.id)} style={{ display:'flex', alignItems:'center', gap:'7px', flex:1 }}>
+                <FolderIcon color={folderColors[i % folderColors.length]} />
+                <span style={{ fontSize:'12px', color: isActive ? '#2563EB' : '#475569', fontWeight: isActive ? 600 : 400, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {f.name}{f.code ? ` (${f.code})` : ''}
+                </span>
               </div>
-            )}
-            
-          </div>
-
-          {/* Nav items */}
-          <nav style={{ padding:'8px 0' }}>
-            {/* Files — active */}
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', background:'rgba(37,99,235,0.3)', borderLeft:'3px solid #2563EB', cursor:'pointer' }}>
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-                <rect x="2" y="1.5" width="9" height="12" rx="1.5" stroke="#fff" strokeWidth="1.3"/>
-                <path d="M5 5.5h5M5 8h3" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
-              </svg>
-              {!sidebarCollapsed && <span style={{ fontSize:'13px', fontWeight:600, color:'#fff' }}>Folders</span>}
+              {user?.role === 'ADMIN' && (
+                <button onClick={(e) => deleteFolder(e, f.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#EF4444', fontSize:'13px', opacity:0, padding:'0 2px' }}
+                  onMouseEnter={e => e.currentTarget.style.opacity='1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity='0'}>×</button>
+              )}
             </div>
-            {[
-              { label:'Address book', icon:'M10 2a4 4 0 11-8 0 4 4 0 018 0zM2 12a6 6 0 0112 0', path:'/address-book' },
-              { label:'Tasks', icon:'M3 6h9M3 10h6M3 2h12', path:'/tasks' },
-              { label:'Messages', icon:'M2 4h11v7H2zM5 11l2 3 2-3', path:'/messages' },
-              { label:'Reports', icon:'M2 12V4l4 4 3-3 4 4', path:'/reports' },
-            ].map(item => (
-              <div key={item.label} onClick={() => router.push(item.path)}
-                style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', cursor:'pointer', borderLeft:'3px solid transparent' }}
-                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background='transparent'; }}>
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-                  <path d={item.icon} stroke="#94A3B8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                {!sidebarCollapsed && <span style={{ fontSize:'13px', color:'#94A3B8' }}>{item.label}</span>}
-              </div>
-            ))}
-          </nav>
-
-          
-
-          
-
-          
-          
-
-          
-        <div style={{ marginTop:'auto', borderTop:'1px solid rgba(255,255,255,0.08)', padding:'12px', display:'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end' }}>
-            <button onClick={() => setSidebarCollapsed(c => !c)}
-              style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'4px', display:'flex', alignItems:'center', gap:'6px' }}
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d={sidebarCollapsed ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {!sidebarCollapsed && <span style={{ fontSize:'11px', color:'#64748B' }}>Collapse</span>}
-            </button>
+            {isExpanded && children.map((child, j) => {
+              const childActive = activeFolder === child.id;
+              return (
+                <div key={child.id} onClick={() => setActiveFolder(childActive ? null : child.id)}
+                  style={{ display:'flex', alignItems:'center', gap:'7px', padding:'6px 16px 6px 32px', cursor:'pointer', background: childActive ? '#EFF6FF' : 'transparent', borderLeft: childActive ? '3px solid #2563EB' : '3px solid transparent' }}
+                  onMouseEnter={e => { if (!childActive) e.currentTarget.style.background='#F8FAFC'; }}
+                  onMouseLeave={e => { if (!childActive) e.currentTarget.style.background='transparent'; }}>
+                  <FolderIcon color={folderColors[j % folderColors.length]} />
+                  <span style={{ fontSize:'12px', color: childActive ? '#2563EB' : '#64748B', fontWeight: childActive ? 600 : 400 }}>
+                    {child.name}{child.code ? ` (${child.code})` : ''}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-        </aside>
+        );
+      })}
+    </div>
+
+    {/* Collapse button */}
+    <div style={{ borderTop:'1px solid #E2E8F0', padding:'10px 16px' }}>
+      <button onClick={() => setSidebarCollapsed(c => !c)}
+        style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', fontSize:'12px', display:'flex', alignItems:'center', gap:'6px' }}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 3L5 7L9 11" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Collapse Menu
+      </button>
+    </div>
+  </aside>
+)}
 
        
         {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
