@@ -47,7 +47,7 @@ export default function LoginPage() {
           </div>
           <div>
             <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '2px', color: '#1E293B' }}>
-              ORARCH<span style={{ color: '#2563EB' }}>247</span>
+              ORARCH <span style={{ color: '#2563EB' }}>24/7</span>
             </div>
             <div style={{ fontSize: '11px', color: '#94A3B8', letterSpacing: '1px' }}>
               CONSTRUCTION DOCUMENT MANAGEMENT
