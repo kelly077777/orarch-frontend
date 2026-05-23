@@ -240,6 +240,7 @@ export default function ProjectWorkspace() {
   const [addingDocType, setAddingDocType]   = useState(false);
   const [newDocTypeName, setNewDocTypeName] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -385,7 +386,13 @@ export default function ProjectWorkspace() {
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────────── */}
         {/* ── NARROW DARK ICON STRIP ── */}
+
+        {!navCollapsed && (
 <div style={{ width:'48px', background:'#1E293B', display:'flex', flexDirection:'column', alignItems:'center', paddingTop:'12px', flexShrink:0, gap:'4px' }}>
+  
+
+  
+  
   {[
     { title:'Files', active:true, path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
     { title:'Address Book', path:'/address-book', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
@@ -401,7 +408,7 @@ export default function ProjectWorkspace() {
     </button>
   ))}
   <div style={{ marginTop:'auto', paddingBottom:'12px' }}>
-    <button onClick={() => setSidebarCollapsed(c => !c)} title="Collapse"
+    <button onClick={() => setNavCollapsed(c => !c)} title="Collapse"
       style={{ width:'38px', height:'38px', borderRadius:'8px', background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#64748B' }}>
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M10 3L5 8l5 5" stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -410,6 +417,7 @@ export default function ProjectWorkspace() {
   </div>
 </div>
 
+)}
 {/* ── WHITE FOLDER PANEL ── */}
 {!sidebarCollapsed && (
   <aside style={{ width:'220px', background:'#fff', borderRight:'1px solid #E2E8F0', display:'flex', flexDirection:'column', flexShrink:0 }}>
@@ -495,7 +503,7 @@ export default function ProjectWorkspace() {
 
     {/* Collapse button */}
     <div style={{ borderTop:'1px solid #E2E8F0', padding:'10px 16px' }}>
-      <button onClick={() => setSidebarCollapsed(c => !c)}
+      <button onClick={() => setNavCollapsed(c => !c)}
         style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', fontSize:'12px', display:'flex', alignItems:'center', gap:'6px' }}>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M9 3L5 7L9 11" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
