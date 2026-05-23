@@ -525,7 +525,15 @@ export default function ProjectWorkspace() {
                   )}
                 </div>
               </div>
-              {folderList.length === 0 && (
+              {/* Recent files link */}
+              <div onClick={() => setActiveFolder(null)}
+                style={{ display:"flex", alignItems:"center", gap:"8px", padding:"8px 16px", cursor:"pointer", background: activeFolder === null ? "#EFF6FF" : "transparent", borderLeft: activeFolder === null ? "3px solid #2563EB" : "3px solid transparent" }}
+                onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background="#F8FAFC"; }}
+                onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background="transparent"; }}>
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke={activeFolder === null ? "#2563EB" : "#94A3B8"} strokeWidth="1.3"/><path d="M6.5 4v2.5l1.5 1.5" stroke={activeFolder === null ? "#2563EB" : "#94A3B8"} strokeWidth="1.3" strokeLinecap="round"/></svg>
+                <span style={{ fontSize:"12px", fontWeight: activeFolder === null ? 600 : 400, color: activeFolder === null ? "#2563EB" : "#475569" }}>Recent files</span>
+              </div>
+              {folderList.length === 0               {folderList.length === 0 &&              {folderList.length === 0 && (
                 <div style={{ padding:'20px 16px', fontSize:'12px', color:'#94A3B8' }}>No folders yet</div>
               )}
              {folderList.filter(f => !f.parentId && (folderFilter === '' || f.name.toLowerCase().includes(folderFilter.toLowerCase()) || (f.code && f.code.toLowerCase().includes(folderFilter.toLowerCase())))).map((f, i) => {
