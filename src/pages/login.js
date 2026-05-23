@@ -56,7 +56,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Panel - form */}
+      {/* Right Panel */}
       <div style={{
         width: '440px', background: '#fff', borderLeft: '1px solid #E2E8F0',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -67,17 +67,15 @@ export default function LoginPage() {
             Log in with your account
           </div>
           <div style={{ fontSize: '13px', color: '#94A3B8', marginBottom: '32px' }}>
-            Welcome back to ORARCH247
+            Welcome back to ORARCH 24/7
           </div>
 
           <form onSubmit={handleSubmit}>
-            {/* Email */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
                 Email
               </label>
-              <input
-                type="email" required value={form.email}
+              <input type="email" required value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder="you@yourcompany.com"
                 style={{
@@ -88,14 +86,12 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
                 Password
               </label>
               <div style={{ position: 'relative' }}>
-                <input
-                  type={showPass ? 'text' : 'password'} required value={form.password}
+                <input type={showPass ? 'text' : 'password'} required value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   placeholder="••••••••"
                   style={{
@@ -111,7 +107,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember me + Forgot password */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#475569' }}>
                 <div onClick={() => setRemember(r => !r)} style={{
@@ -142,15 +137,12 @@ export default function LoginPage() {
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: '11px', background: loading ? '#93C5FD' : '#2563EB',
               color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px',
-              fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', marginBottom: '20px',
+              fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', marginBottom: '24px',
             }}>
               {loading ? 'Signing in...' : 'Log in'}
             </button>
           </form>
 
-         
-
-          {/* Register */}
           <div style={{ textAlign: 'center', fontSize: '13px', color: '#64748B' }}>
             Need to create a new account?{' '}
             <span onClick={() => router.push('/register')}
