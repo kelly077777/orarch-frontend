@@ -500,16 +500,7 @@ export default function ProjectWorkspace() {
       })}
     </div>
 
-    {/* Collapse button */}
-    <div style={{ borderTop:'1px solid #E2E8F0', padding:'10px 16px' }}>
-      <button onClick={() => setNavCollapsed(c => !c)}
-        style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', fontSize:'12px', display:'flex', alignItems:'center', gap:'6px' }}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M9 3L5 7L9 11" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Collapse Menu
-      </button>
-    </div>
+   
   </aside>
 )}
 
