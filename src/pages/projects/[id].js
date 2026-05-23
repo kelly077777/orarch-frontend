@@ -310,7 +310,7 @@ export default function ProjectWorkspace() {
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────────── */}
-        <aside style={{ width:'240px', background:'#1E293B', color:'#fff', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto' }}>
+        <aside style={{ width:'240px', background:'#fff', color:'#1E293B', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto' }}>
 
           {/* Project header */}
           <div style={{ padding:'16px 16px 12px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
