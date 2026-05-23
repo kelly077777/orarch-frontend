@@ -332,7 +332,7 @@ export default function ProjectWorkspace() {
           {/* Nav items */}
           <nav style={{ padding:'8px 0' }}>
             {/* Files — active */}
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', background:'rgba(37,99,235,0.3)', borderLeft:'3px solid #2563EB', cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'9px 16px', background:'#EFF6FF', borderLeft:'3px solid #2563EB', cursor:'pointer' }}>
               <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
                 <rect x="2" y="1.5" width="9" height="12" rx="1.5" stroke="#fff" strokeWidth="1.3"/>
                 <path d="M5 5.5h5M5 8h3" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
@@ -352,7 +352,7 @@ export default function ProjectWorkspace() {
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
                   <path d={item.icon} stroke="#94A3B8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span style={{ fontSize:'13px', color:'#94A3B8' }}>{item.label}</span>
+                <span style={{ fontSize:'13px', color:'#475569' }}>{item.label}</span>
               </div>
             ))}
           </nav>
