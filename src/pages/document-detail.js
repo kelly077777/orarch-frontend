@@ -153,6 +153,8 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [allDocs, setAllDocs] = useState([]);
 
+const [showMenu, setShowMenu] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
   }, [user, authLoading]);
@@ -360,9 +362,28 @@ export default function DocumentDetailPage() {
               {activeTab === 'Attachments' && (
                 <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
                   <div style={{ fontSize:'13px', color:'#94A3B8' }}>No attachments yet</div>
-                  <button style={{ background:'#F1F5F9', color:'#475569', border:'1px dashed #CBD5E1', borderRadius:'8px', padding:'10px', fontSize:'12px', cursor:'pointer' }}>
-                    + Add Attachment
-                  </button>
+                  <div style={{ position:'relative' }}>
+  <button onClick={() => setShowMenu(m => !m)}
+    style={{ background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'6px', padding:'7px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>
+    •••
+  </button>
+  {showMenu && (
+    <div style={{ position:'absolute', right:0, top:'36px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', zIndex:50, minWidth:'180px', overflow:'hidden' }}>
+      {[
+        { label:'Copy link', icon:'🔗', action: () => { navigator.clipboard.writeText(window.location.href); setShowMenu(false); alert('Link copied!'); } },
+        { label:'Generate QR code', icon:'⬛', action: () => { window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.href)}`, '_blank'); setShowMenu(false); } },
+        { label:'Print to PDF', icon:'🖨️', action: () => { window.print(); setShowMenu(false); } },
+      ].map(item => (
+        <button key={item.label} onClick={item.action}
+          style={{ width:'100%', padding:'10px 16px', border:'none', background:'#fff', textAlign:'left', fontSize:'13px', color:'#1E293B', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px' }}
+          onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'}
+          onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+          {item.icon} {item.label}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
                 </div>
               )}
 
