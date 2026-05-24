@@ -40,7 +40,7 @@ function UserModal({ user: editUser, onClose, onSaved }) {
     firstName: form.firstName,
     lastName: form.lastName,
     email: form.email,
-    password: form.password || 'Orarch247@1234',
+    password: 'Orarch247@1234',
     role: form.role,
   });
 }
