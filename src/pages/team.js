@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
-import { users } from '../lib/api';
+import { users, auth } from '../lib/api';
 import Topbar from '../components/Topbar';
 import Sidebar from '../components/Sidebar';
 
@@ -36,7 +36,7 @@ function UserModal({ user: editUser, onClose, onSaved }) {
       if (editUser) {
         await users.update(editUser.id, { firstName: form.firstName, lastName: form.lastName, role: form.role });
       } else {
-  await users.invite({
+  await auth.invite({
     firstName: form.firstName,
     lastName: form.lastName,
     email: form.email,
