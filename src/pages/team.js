@@ -40,7 +40,6 @@ function UserModal({ user: editUser, onClose, onSaved }) {
     firstName: form.firstName,
     lastName: form.lastName,
     email: form.email,
-    password: 'Orarch247@1234',
     role: form.role,
   });
 }
@@ -75,9 +74,7 @@ function UserModal({ user: editUser, onClose, onSaved }) {
               <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="john@company.com"
                 style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
             </div>
-            <div style={{ marginBottom:'12px' }}>
-                style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
-            </div>
+            
           </>
         )}
         <div style={{ marginBottom:'20px' }}>
