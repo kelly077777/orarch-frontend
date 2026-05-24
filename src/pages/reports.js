@@ -36,10 +36,10 @@ function DonutChart({ segments, total, label }) {
 }
 
 function SummaryDonutRow({ taskList }) {
-  const completed = taskList.filter(t => t.status === 'COMPLETED').length;
-  const open = taskList.filter(t => t.status === 'OPEN' || t.status === 'In Progress').length;
-  const overdue = taskList.filter(t => t.status === 'OVERDUE' || (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'COMPLETED')).length;
-  const cancelled = taskList.filter(t => t.status === 'CANCELLED' || t.status === 'Canceled').length;
+  const completed = taskList.filter(t => t.status === 'Completed').length;
+  const open = taskList.filter(t => t.status === 'Open' || t.status === 'In Progress').length;
+  const overdue = taskList.filter(t => t.status === 'Overdue' || (t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Completed')).length;
+  const cancelled = taskList.filter(t => t.status === 'Canceled').length;
   const segments = [
     { label:'Completed', count: completed, color:'#16A34A' },
     { label:'Open', count: open, color:'#F59E0B' },
@@ -130,9 +130,9 @@ export default function ReportsPage() {
   taskList.forEach(t => {
     const k = t.assigneeName || 'Unassigned';
     if (!byAssignee[k]) byAssignee[k] = { completed:0, open:0, overdue:0, cancelled:0 };
-    if (t.status === 'COMPLETED') byAssignee[k].completed++;
-    else if (t.status === 'OVERDUE') byAssignee[k].overdue++;
-    else if (t.status === 'CANCELLED') byAssignee[k].cancelled++;
+    if (t.status === 'Completed') byAssignee[k].completed++;
+    else if (t.status === 'Overdue') byAssignee[k].overdue++;
+    else if (t.status === 'Canceled') byAssignee[k].cancelled++;
     else byAssignee[k].open++;
   });
   const assigneeRows = Object.entries(byAssignee).sort((a,b) => (b[1].completed+b[1].open) - (a[1].completed+a[1].open));
@@ -143,9 +143,9 @@ export default function ReportsPage() {
   taskList.forEach(t => {
     const k = t.priority || 'MEDIUM';
     if (!byPriority[k]) byPriority[k] = { completed:0, open:0, overdue:0, cancelled:0 };
-    if (t.status === 'COMPLETED') byPriority[k].completed++;
-    else if (t.status === 'OVERDUE') byPriority[k].overdue++;
-    else if (t.status === 'CANCELLED') byPriority[k].cancelled++;
+    if (t.status === 'Completed') byPriority[k].completed++;
+    else if (t.status === 'Overdue') byPriority[k].overdue++;
+    else if (t.status === 'Canceled') byPriority[k].cancelled++;
     else byPriority[k].open++;
   });
   const priorityRows = Object.entries(byPriority);
