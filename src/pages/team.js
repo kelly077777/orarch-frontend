@@ -23,7 +23,7 @@ function UserModal({ user: editUser, onClose, onSaved }) {
     firstName: editUser?.firstName || '',
     lastName: editUser?.lastName || '',
     email: editUser?.email || '',
-    password: '',
+
     role: editUser?.role || 'VIEWER',
   });
   const [loading, setLoading] = useState(false);
@@ -76,8 +76,6 @@ function UserModal({ user: editUser, onClose, onSaved }) {
                 style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
             </div>
             <div style={{ marginBottom:'12px' }}>
-              <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Password (default: Orarch247@1234)</label>
-              <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Leave blank for default"
                 style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
             </div>
           </>
