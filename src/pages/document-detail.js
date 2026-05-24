@@ -236,7 +236,7 @@ const [showMenu, setShowMenu] = useState(false);
           {/* Document Preview Area */}
           <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
             {/* Toolbar */}
-            <div style={{ background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'10px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div style={{ background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'10px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', overflowX:'auto', gap:'8px', flexWrap:'nowrap' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
                 <span onClick={() => router.back()} style={{ cursor:'pointer', color:'#64748B', fontSize:'13px' }}>← Back</span>
                 <span style={{ fontSize:'14px', fontWeight:700, color:'#1E293B' }}>{doc?.title || doc?.fileName || '...'}</span>
