@@ -78,7 +78,7 @@ export const notifications = {
   markAllRead: () => request('/notifications/read-all', { method: 'PUT' }),
 };
 export const users = {
-  list: () => request('/users'),
+  list: (organizationId) => request(`/users${organizationId ? `?organizationId=${organizationId}` : ''}`),
   get: (id) => request(`/users/${id}`),
   update: (id, body) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
 };
