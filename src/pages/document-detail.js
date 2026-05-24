@@ -15,6 +15,132 @@ async function apiFetch(path) {
   return res.json();
 }
 
+function WorkflowTab({ docId, projectId, user, token, BASE_URL }) {
+  const [approvals, setApprovals] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', priority: 'NORMAL' });
+  const [loading, setLoading] = useState(false);
+
+  const loadApprovals = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/approvals?projectId=${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      const filtered = (Array.isArray(data) ? data : []).filter(a => a.documentId === docId);
+      setApprovals(filtered);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => { if (docId && projectId) loadApprovals(); }, [docId, projectId]);
+
+  const submitApproval = async () => {
+    if (!form.title) return;
+    setLoading(true);
+    try {
+      await fetch(`${BASE_URL}/approvals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...form, documentId: docId, projectId })
+      });
+      setShowForm(false);
+      setForm({ title: '', description: '', priority: 'NORMAL' });
+      loadApprovals();
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  const decide = async (approvalId, decision) => {
+    try {
+      await fetch(`${BASE_URL}/approvals/${approvalId}/decide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ decision, comments: '' })
+      });
+      loadApprovals();
+    } catch (err) { console.error(err); }
+  };
+
+  const statusColor = { PENDING: '#F59E0B', APPROVED: '#16A34A', REJECTED: '#DC2626', IN_PROGRESS: '#2563EB' };
+  const statusBg    = { PENDING: '#FEF3C7', APPROVED: '#DCFCE7', REJECTED: '#FEE2E2', IN_PROGRESS: '#EFF6FF' };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+      {/* Send for approval button */}
+      {!showForm && (
+        <button onClick={() => setShowForm(true)}
+          style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'8px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>
+          + Send for Approval
+        </button>
+      )}
+
+      {/* New approval form */}
+      {showForm && (
+        <div style={{ background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'12px', display:'flex', flexDirection:'column', gap:'8px' }}>
+          <div style={{ fontSize:'12px', fontWeight:700, color:'#1E293B' }}>New Approval Request</div>
+          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            placeholder="Title (e.g. Validate GO-BDC)"
+            style={{ border:'1px solid #E2E8F0', borderRadius:'6px', padding:'7px 10px', fontSize:'12px', outline:'none' }} />
+          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            placeholder="Description (optional)" rows={2}
+            style={{ border:'1px solid #E2E8F0', borderRadius:'6px', padding:'7px 10px', fontSize:'12px', outline:'none', resize:'none' }} />
+          <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
+            style={{ border:'1px solid #E2E8F0', borderRadius:'6px', padding:'7px 10px', fontSize:'12px', background:'#fff' }}>
+            {['LOW','NORMAL','HIGH','URGENT'].map(p => <option key={p}>{p}</option>)}
+          </select>
+          <div style={{ display:'flex', gap:'8px' }}>
+            <button onClick={submitApproval} disabled={loading}
+              style={{ flex:1, background: loading ? '#93C5FD' : '#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'7px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>
+              {loading ? 'Sending...' : 'Send'}
+            </button>
+            <button onClick={() => setShowForm(false)}
+              style={{ flex:1, background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'6px', padding:'7px', fontSize:'12px', cursor:'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Approval list */}
+      {approvals.length === 0 && !showForm && (
+        <div style={{ fontSize:'13px', color:'#94A3B8' }}>No approval requests yet.</div>
+      )}
+      {approvals.map(a => (
+        <div key={a.id} style={{ background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'12px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'6px' }}>
+            <div style={{ fontSize:'13px', fontWeight:700, color:'#1E293B' }}>{a.title}</div>
+            <span style={{ fontSize:'10px', fontWeight:700, padding:'2px 8px', borderRadius:'10px',
+              background: statusBg[a.status] || '#F1F5F9', color: statusColor[a.status] || '#64748B' }}>
+              {a.status}
+            </span>
+          </div>
+          {a.description && <div style={{ fontSize:'12px', color:'#64748B', marginBottom:'6px' }}>{a.description}</div>}
+          <div style={{ fontSize:'11px', color:'#94A3B8', marginBottom:'8px' }}>
+            Priority: {a.priority} · {a.createdAt ? new Date(a.createdAt).toLocaleDateString() : ''}
+          </div>
+          {a.status === 'PENDING' && a.requestedBy !== user?.userId && (
+            <div style={{ display:'flex', gap:'6px' }}>
+              <button onClick={() => decide(a.id, 'APPROVED')}
+                style={{ flex:1, background:'#DCFCE7', color:'#16A34A', border:'1px solid #16A34A', borderRadius:'6px', padding:'6px', fontSize:'11px', fontWeight:600, cursor:'pointer' }}>
+                ✓ Approve
+              </button>
+              <button onClick={() => decide(a.id, 'REJECTED')}
+                style={{ flex:1, background:'#FEE2E2', color:'#DC2626', border:'1px solid #DC2626', borderRadius:'6px', padding:'6px', fontSize:'11px', fontWeight:600, cursor:'pointer' }}>
+                ✗ Reject
+              </button>
+            </div>
+          )}
+          {a.status !== 'PENDING' && (
+            <div style={{ fontSize:'11px', color: statusColor[a.status], fontWeight:600 }}>
+              {a.status === 'APPROVED' ? '✓ Approved' : '✗ Rejected'} · {a.completedAt ? new Date(a.completedAt).toLocaleDateString() : ''}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DocumentDetailPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -228,27 +354,8 @@ export default function DocumentDetailPage() {
               )}
 
               {activeTab === 'Workflows' && (
-                <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-                  {doc?.status === 'DRAFT' && <div style={{ fontSize:'13px', color:'#94A3B8' }}>No workflow started yet. Send for approval to begin.</div>}
-                  {[
-                    { step:'Draft', status: 'Completed', date: formatDate(doc?.createdAt) },
-                    { step:'In Review', status: doc?.status === 'IN_REVIEW' || doc?.status === 'APPROVED' ? 'Completed' : 'Pending', date:'—' },
-                    { step:'Approved', status: doc?.status === 'APPROVED' ? 'Completed' : 'Pending', date:'—' },
-                  ].map((w, i) => (
-                    <div key={w.step} style={{ display:'flex', gap:'12px', alignItems:'flex-start' }}>
-                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-                        <div style={{ width:'12px', height:'12px', borderRadius:'50%', background: w.status === 'Completed' ? '#16A34A' : w.status === 'In Progress' ? '#2563EB' : '#94A3B8', marginTop:'3px' }} />
-                        {i < 2 && <div style={{ width:'2px', height:'30px', background:'#E2E8F0', marginTop:'4px' }} />}
-                      </div>
-                      <div>
-                        <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>{w.step}</div>
-                        <div style={{ fontSize:'11px', color: w.status === 'Completed' ? '#16A34A' : '#94A3B8', fontWeight:600 }}>{w.status}</div>
-                        <div style={{ fontSize:'11px', color:'#94A3B8' }}>{w.date}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+  <WorkflowTab docId={id} projectId={projectId} user={user} token={getToken()} BASE_URL={BASE_URL} />
+)}
 
               {activeTab === 'Attachments' && (
                 <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
