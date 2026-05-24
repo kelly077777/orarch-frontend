@@ -58,7 +58,7 @@ export default function DocumentDetailPage() {
       const res = await fetch(`${BASE_URL}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ documentId: id, content: message })
+        body: JSON.stringify({ documentId: id, content: message, authorName: `${user.firstName} ${user.lastName}` })
       });
       if (res.ok) {
         setMessage('');
@@ -188,7 +188,7 @@ export default function DocumentDetailPage() {
                     {comments.map((c, i) => (
                       <div key={i} style={{ background:'#F8FAFC', borderRadius:'8px', padding:'10px' }}>
                         <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'4px' }}>
-                          <span style={{ fontSize:'12px', fontWeight:700, color:'#1E293B' }}>{c.userName || 'User'}</span>
+                          <span style={{ fontSize:'12px', fontWeight:700, color:'#1E293B' }}>{c.authorName || 'User'}</span>
                           <span style={{ fontSize:'11px', color:'#94A3B8' }}>{formatDate(c.createdAt)}</span>
                         </div>
                         <div style={{ fontSize:'12px', color:'#475569' }}>{c.content}</div>
