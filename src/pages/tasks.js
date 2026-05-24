@@ -161,7 +161,7 @@ export default function TasksPage() {
                 ) : taskList.map((task, i) => (
                   <tr key={task.id} style={{ borderBottom: i < taskList.length-1 ? '1px solid #F1F5F9' : 'none' }}>
                     <td style={{ padding:'12px 14px', fontSize:'13px', fontWeight:500, color:'#1E293B' }}>{task.title}</td>
-                    <td style={{ padding:'12px 14px', fontSize:'12px', color:'#64748B' }}>{task.projectId || '—'}</td>
+                    <td style={{ padding:'12px 14px', fontSize:'12px', color:'#64748B' }}>{projectList.find(p => p.id === task.projectId)?.name || '—'}</td>
                     <td style={{ padding:'12px 14px', fontSize:'12px', color:'#64748B' }}>{task.assigneeName || '—'}</td>
                     <td style={{ padding:'12px 14px', fontSize:'12px', color:'#64748B' }}>{task.dueDate || '—'}</td>
                     <td style={{ padding:'12px 14px' }}>
