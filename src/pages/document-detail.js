@@ -393,28 +393,9 @@ export default function DocumentDetailPage() {
                 </div>
               )}
 
-              {activeTab === 'Versions' && (
-                <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-                  {versions.length === 0 && (
-                    <div style={{ background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'4px' }}>
-                        <span style={{ fontSize:'13px', fontWeight:700, color:'#1E293B' }}>v{doc?.currentVersion || '1.0'}</span>
-                        <span style={{ fontSize:'11px', color:'#94A3B8' }}>{formatDate(doc?.createdAt)}</span>
-                      </div>
-                      <div style={{ fontSize:'11px', color:'#64748B' }}>Current version</div>
-                    </div>
-                  )}
-                  {versions.map(v => (
-                    <div key={v.id} style={{ background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'10px 12px' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'4px' }}>
-                        <span style={{ fontSize:'13px', fontWeight:700, color:'#1E293B' }}>v{v.versionNumber}</span>
-                        <span style={{ fontSize:'11px', color:'#94A3B8' }}>{formatDate(v.createdAt)}</span>
-                      </div>
-                      <div style={{ fontSize:'11px', color:'#94A3B8' }}>{v.notes || 'No notes'}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
+             {activeTab === 'Versions' && (
+  <VersionsTab docId={id} projectId={projectId} doc={doc} user={user} token={getToken()} BASE_URL={BASE_URL} />
+)}
 
               {activeTab === 'History' && (
                 <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
