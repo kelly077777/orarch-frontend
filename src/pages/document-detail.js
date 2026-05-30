@@ -263,6 +263,7 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [allDocs, setAllDocs] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
+  const [showShareLink, setShowShareLink] = useState(false);
 
   useEffect(() => { if (!authLoading && !user) router.push('/login'); }, [user, authLoading]);
   useEffect(() => { if (id) loadData(); }, [id]);
@@ -346,6 +347,39 @@ export default function DocumentDetailPage() {
                 <span onClick={() => router.back()} style={{ cursor: 'pointer', color: '#64748B', fontSize: '13px' }}>← Back</span>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B' }}>{doc?.title || doc?.fileName || '...'}</span>
                 <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>v{doc?.currentVersion || '1.0'}</span>
+                <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>v{doc?.currentVersion || '1.0'}</span>
+<div style={{ position:'relative' }}>
+  <button onClick={() => setShowShareLink(s => !s)}
+    style={{ background:'none', border:'none', cursor:'pointer', color:'#64748B', fontSize:'16px', padding:'2px 6px' }}
+    title="Share internal link">
+    🔗
+  </button>
+  {showShareLink && (
+    <div style={{ position:'absolute', top:'32px', left:0, background:'#fff', border:'1px solid #E2E8F0', borderRadius:'12px', boxShadow:'0 8px 32px rgba(0,0,0,0.15)', zIndex:100, width:'420px', padding:'20px' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
+        <div style={{ fontSize:'14px', fontWeight:700, color:'#1E293B' }}>Share internal link</div>
+        <button onClick={() => setShowShareLink(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', fontSize:'18px' }}>×</button>
+      </div>
+      <div style={{ fontSize:'12px', color:'#64748B', marginBottom:'16px' }}>Only users with existing access can use this link.</div>
+      <div style={{ display:'flex', gap:'8px', marginBottom:'16px' }}>
+        <button style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>
+          Revision ({doc?.currentVersion || 'A'})
+        </button>
+        <button style={{ padding:'6px 14px', borderRadius:'6px', border:'none', background:'#2563EB', fontSize:'12px', color:'#fff', cursor:'pointer', fontWeight:600 }}>
+          Document
+        </button>
+      </div>
+      <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+        <input readOnly value={typeof window !== 'undefined' ? window.location.href : ''}
+          style={{ flex:1, border:'1px solid #E2E8F0', borderRadius:'6px', padding:'8px 12px', fontSize:'12px', color:'#475569', background:'#F8FAFC', outline:'none' }} />
+        <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Link copied!'); }}
+          style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'8px 12px', fontSize:'12px', cursor:'pointer' }}>
+          Copy
+        </button>
+      </div>
+    </div>
+  )}
+</div>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => prevDoc && router.push(`/document-detail?id=${prevDoc.id}&projectId=${projectId}`)} disabled={!prevDoc}
