@@ -78,6 +78,7 @@ export default function TasksPage() {
   const [projectList, setProjectList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [activeTab, setActiveTab] = useState('Open');
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -103,6 +104,12 @@ export default function TasksPage() {
     } catch (err) { console.error(err); }
   };
 
+
+
+
+  const openTasks = taskList.filter(t => t.status !== 'Completed' && t.status !== 'Canceled');
+const completedTasks = taskList.filter(t => t.status === 'Completed');
+const displayTasks = activeTab === 'Open' ? openTasks : completedTasks;
   const counts = {
     Open: taskList.filter(t => t.status === 'Open').length,
     Overdue: taskList.filter(t => t.status === 'Overdue').length,
@@ -122,7 +129,7 @@ export default function TasksPage() {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }}>
             <div>
               <h1 style={{ fontSize:'18px', fontWeight:700, color:'#1E293B', margin:0 }}>Tasks</h1>
-              <p style={{ fontSize:'12px', color:'#94A3B8', margin:'4px 0 0' }}>Track and manage assigned tasks</p>
+<p style={{ fontSize:'12px', color:'#94A3B8', margin:'4px 0 0' }}>My Tasks ({taskList.length})</p>
             </div>
             <button onClick={() => setShowNew(true)}
               style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'8px 16px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
@@ -144,6 +151,14 @@ export default function TasksPage() {
             ))}
           </div>
 
+            <div style={{ display:'flex', gap:'4px', marginBottom:'16px', borderBottom:'1px solid #E2E8F0', paddingBottom:'0' }}>
+  {['Open', 'Completed'].map(tab => (
+    <button key={tab} onClick={() => setActiveTab(tab)}
+      style={{ padding:'8px 20px', border:'none', borderBottom: activeTab===tab ? '2px solid #2563EB' : '2px solid transparent', background:'transparent', fontSize:'13px', fontWeight: activeTab===tab ? 700 : 400, color: activeTab===tab ? '#2563EB' : '#64748B', cursor:'pointer' }}>
+      {tab} tasks
+    </button>
+  ))}
+</div>
           <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflow:'hidden' }}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
@@ -158,7 +173,13 @@ export default function TasksPage() {
                   <tr><td colSpan={6} style={{ padding:'32px', textAlign:'center', color:'#94A3B8' }}>Loading tasks...</td></tr>
                 ) : taskList.length === 0 ? (
                   <tr><td colSpan={6} style={{ padding:'32px', textAlign:'center', color:'#94A3B8' }}>No tasks yet — click + New Task to create one</td></tr>
-                ) : taskList.map((task, i) => (
+               ) : displayTasks.length === 0 ? (
+  <tr><td colSpan={6} style={{ padding:'60px', textAlign:'center' }}>
+    <div style={{ fontSize:'32px', marginBottom:'12px' }}>✅</div>
+    <div style={{ fontSize:'15px', fontWeight:700, color:'#1E293B', marginBottom:'4px' }}>Hooray, you're all done here!</div>
+    <div style={{ fontSize:'13px', color:'#94A3B8' }}>Time for a break.</div>
+  </td></tr>
+) : displayTasks.map((task, i) => (
                   <tr key={task.id} style={{ borderBottom: i < taskList.length-1 ? '1px solid #F1F5F9' : 'none' }}>
                     <td style={{ padding:'12px 14px', fontSize:'13px', fontWeight:500, color:'#1E293B' }}>{task.title}</td>
                     <td style={{ padding:'12px 14px', fontSize:'12px', color:'#64748B' }}>{projectList.find(p => p.id === task.projectId)?.name || '—'}</td>
@@ -169,9 +190,15 @@ export default function TasksPage() {
                         {task.priority || '—'}
                       </span>
                     </td>
-                    <td style={{ padding:'12px 14px' }}>
-                      <span style={{ color: statusColor[task.status]||'#64748B', fontSize:'12px', fontWeight:600 }}>● {task.status}</span>
-                    </td>
+                    <td style={{ padding:'12px 14px', display:'flex', alignItems:'center', gap:'8px' }}>
+  <span style={{ color: statusColor[task.status]||'#64748B', fontSize:'12px', fontWeight:600 }}>● {task.status}</span>
+  {task.status !== 'Completed' && task.status !== 'Canceled' && (
+    <button onClick={async () => { await tasks.update(task.id, { status: 'Completed' }); loadTasks(); }}
+      style={{ fontSize:'11px', background:'#DCFCE7', color:'#16A34A', border:'1px solid #16A34A', borderRadius:'4px', padding:'2px 8px', cursor:'pointer' }}>
+      ✓ Done
+    </button>
+  )}
+</td>
                   </tr>
                 ))}
               </tbody>
