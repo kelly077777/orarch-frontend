@@ -160,11 +160,11 @@ export default function MessagesPage() {
             </div>
             <div style={{ flex:1, overflowY:'auto' }}>
               {displayConvs.length === 0 ? (
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:'12px', color:'#94A3B8' }}>
-                  <div style={{ fontSize:'40px' }}>💤</div>
-                  <div style={{ fontSize:'14px', fontWeight:600, color:'#1E293B' }}>it's quiet here</div>
-                  <div style={{ fontSize:'12px' }}>No messages yet</div>
-                </div>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:'8px', color:'#94A3B8', padding:'20px' }}>
+  <div style={{ fontSize:'28px' }}>💤</div>
+  <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>it's quiet here</div>
+  <div style={{ fontSize:'11px', textAlign:'center' }}>No messages yet. Click + New to start.</div>
+</div>
               ) : displayConvs.map(c => (
                 <div key={c.id} onClick={() => setActive(c)}
                   style={{ padding:'14px 16px', cursor:'pointer', background: active?.id===c.id ? '#EFF6FF' : '#fff', borderBottom:'1px solid #F1F5F9', borderLeft: active?.id===c.id ? '3px solid #2563EB' : '3px solid transparent' }}>
