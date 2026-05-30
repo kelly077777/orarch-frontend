@@ -249,12 +249,14 @@ export default function DocumentDetailPage() {
                   style={{ background:'#F1F5F9', color: nextDoc ? '#475569' : '#CBD5E1', border:'none', borderRadius:'6px', padding:'6px 12px', fontSize:'12px', fontWeight:600, cursor: nextDoc ? 'pointer' : 'not-allowed' }}>
                   Next →
                 </button>
-                <button style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 12px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>
-                  Download
-                </button>
-                <button style={{ background:'#0EA5E9', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 12px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>
-                  Open in Viewer
-                </button>
+                <button onClick={() => { if (doc?.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached to this document yet.'); }}
+  style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 12px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>
+  Download
+</button>
+                <button onClick={() => { if (doc?.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+  style={{ background:'#0EA5E9', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 12px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>
+  Open in Viewer
+</button>
               </div>
             </div>
 
@@ -266,9 +268,10 @@ export default function DocumentDetailPage() {
                 </div>
                 <div style={{ fontSize:'14px', fontWeight:600, color:'#1E293B' }}>{doc?.title || doc?.fileName}</div>
                 <div style={{ fontSize:'12px', color:'#94A3B8' }}>{doc?.documentType} · {formatSize(doc?.fileSize)}</div>
-                <button style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'8px 20px', fontSize:'13px', fontWeight:600, cursor:'pointer', marginTop:'8px' }}>
-                  Open in Viewer
-                </button>
+               <button onClick={() => { if (doc?.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+  style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'8px 20px', fontSize:'13px', fontWeight:600, cursor:'pointer', marginTop:'8px' }}>
+  Open in Viewer
+</button>
               </div>
             </div>
           </div>
