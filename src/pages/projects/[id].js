@@ -56,6 +56,61 @@ function ClockIcon() {
   );
 }
 
+
+function AdvancedSearchModal({ onClose, onSearch, folderList }) {
+  const [form, setForm] = useState({ title: '', status: '', extension: '', folderId: '' });
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }}>
+      <div style={{ background:'#fff', borderRadius:'14px', padding:'28px', width:'500px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }}>
+          <div style={{ fontSize:'16px', fontWeight:700, color:'#1E293B' }}>Advanced Search</div>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:'18px', cursor:'pointer', color:'#94A3B8' }}>×</button>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'16px' }}>
+          <div>
+            <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Search by title</label>
+            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              placeholder="Document title..."
+              style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Search by extension</label>
+            <input value={form.extension} onChange={e => setForm(f => ({ ...f, extension: e.target.value }))}
+              placeholder="e.g. pdf, dwg, docx..."
+              style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', boxSizing:'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Status</label>
+            <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+              style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', background:'#fff', boxSizing:'border-box' }}>
+              <option value=''>Any status</option>
+              {['DRAFT','IN_REVIEW','APPROVED','REJECTED','PENDING'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize:'12px', fontWeight:600, color:'#475569', display:'block', marginBottom:'4px' }}>Search in folder</label>
+            <select value={form.folderId} onChange={e => setForm(f => ({ ...f, folderId: e.target.value }))}
+              style={{ width:'100%', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', background:'#fff', boxSizing:'border-box' }}>
+              <option value=''>Any folder</option>
+              {folderList.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+          <button onClick={() => { onSearch({ title:'', status:'', extension:'', folderId:'' }); onClose(); }}
+            style={{ padding:'8px 18px', border:'1px solid #E2E8F0', borderRadius:'8px', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#475569' }}>
+            Reset
+          </button>
+          <button onClick={() => { onSearch(form); onClose(); }}
+            style={{ padding:'8px 20px', border:'none', borderRadius:'8px', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
+            Search
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Upload Modal ──────────────────────────────────────────────────────────────
 
 function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeList = [], onAddDocType }) {
@@ -248,6 +303,8 @@ export default function ProjectWorkspace() {
   const [fileList, setFileList]         = useState([]);
   const [activeFolder, setActiveFolder] = useState(null); // null = all / Recent files
   const [sortBy, setSortBy]             = useState('date');
+  const [showAdvSearch, setShowAdvSearch] = useState(false);
+const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '', folderId: '' });
   const [dataLoading, setDataLoading]   = useState(false);
   const [showUpload, setShowUpload]     = useState(false);
   const [showApproval, setShowApproval] = useState(null);
@@ -380,10 +437,14 @@ export default function ProjectWorkspace() {
 
   // Filtered files
   const displayFiles = fileList
-    .filter(f => {
-      if (!activeFolder) return true;
-      return f.folderId === activeFolder || f.discipline === activeFolder;
-    })
+  .filter(f => {
+    if (activeFolder && f.folderId !== activeFolder && f.discipline !== activeFolder) return false;
+    if (advSearch.title && !(f.title || f.fileName || '').toLowerCase().includes(advSearch.title.toLowerCase())) return false;
+    if (advSearch.status && f.status !== advSearch.status) return false;
+    if (advSearch.extension && !(f.fileName || '').toLowerCase().endsWith(advSearch.extension.toLowerCase())) return false;
+    if (advSearch.folderId && f.folderId !== advSearch.folderId) return false;
+    return true;
+  })
     .sort((a, b) => {
       if (sortBy === 'name') return (a.title||'').localeCompare(b.title||'');
       if (sortBy === 'revision') return (a.currentVersion||'').localeCompare(b.currentVersion||'');
@@ -547,6 +608,10 @@ export default function ProjectWorkspace() {
               style={{ padding:'7px 16px', borderRadius:'6px', border:'none', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
               + Upload
             </button>
+            <button onClick={() => setShowAdvSearch(true)}
+  style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px' }}>
+  🔍 Search
+</button>
             <button onClick={() => setAddingFolder(true)} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>New folder</button>
             {['Download','Share'].map(b => (
               <button key={b} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>{b}</button>
@@ -811,6 +876,7 @@ export default function ProjectWorkspace() {
       {showApproval && (
         <ApprovalModal document={showApproval} projectId={id} onClose={() => setShowApproval(null)} onSent={loadDocuments} />
       )}
+      {showAdvSearch && <AdvancedSearchModal onClose={() => setShowAdvSearch(false)} onSearch={s => setAdvSearch(s)} folderList={folderList} />}
     </div>
   );
 }
