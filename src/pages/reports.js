@@ -188,24 +188,49 @@ export default function ReportsPage() {
       <Topbar />
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <Sidebar />
-        <main style={{ flex:1, background:'#F8FAFC', overflow:'hidden', display:'flex', flexDirection:'column' }}>
-          {/* Header */}
-          <div style={{ background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ display:'flex', gap:'4px' }}>
-              {tabs.map(t => (
-                <button key={t.key} onClick={() => setTab(t.key)}
-                  style={{ padding:'6px 16px', border:'none', borderRadius:'6px', fontSize:'12px', fontWeight:600, cursor:'pointer', background: tab===t.key ? '#2563EB' : 'transparent', color: tab===t.key ? '#fff' : '#64748B' }}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <button onClick={exportToXLS}
-              style={{ background:'#16A34A', color:'#fff', border:'none', borderRadius:'8px', padding:'8px 16px', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
-              Export to .xls
-            </button>
-          </div>
+        <main style={{ flex:1, background:'#F8FAFC', overflow:'hidden', display:'flex' }}>
+  {/* Reports Left Sidebar */}
+  <div style={{ width:'200px', background:'#fff', borderRight:'1px solid #E2E8F0', flexShrink:0, overflowY:'auto' }}>
+    <div style={{ padding:'16px', borderBottom:'1px solid #E2E8F0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+      <span style={{ fontSize:'14px', fontWeight:700, color:'#1E293B' }}>Reports</span>
+      <button onClick={exportToXLS}
+        style={{ background:'#16A34A', color:'#fff', border:'none', borderRadius:'6px', padding:'4px 10px', fontSize:'11px', fontWeight:600, cursor:'pointer' }}>
+        Export
+      </button>
+    </div>
+    <div style={{ padding:'8px 0' }}>
+      <div style={{ padding:'6px 16px', fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.5px' }}>Tasks</div>
+      {[
+        { key:'dashboard', label:'Dashboard', icon:'📊' },
+        { key:'byUser',    label:'By User',   icon:'👤' },
+        { key:'byPriority',label:'By Priority',icon:'🎯' },
+      ].map(t => (
+        <div key={t.key} onClick={() => setTab(t.key)}
+          style={{ padding:'8px 16px', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', background: tab===t.key ? '#EFF6FF' : 'transparent', borderLeft: tab===t.key ? '3px solid #2563EB' : '3px solid transparent' }}
+          onMouseEnter={e => { if(tab!==t.key) e.currentTarget.style.background='#F8FAFC'; }}
+          onMouseLeave={e => { if(tab!==t.key) e.currentTarget.style.background='transparent'; }}>
+          <span style={{ fontSize:'13px' }}>{t.icon}</span>
+          <span style={{ fontSize:'13px', color: tab===t.key ? '#2563EB' : '#475569', fontWeight: tab===t.key ? 600 : 400 }}>{t.label}</span>
+        </div>
+      ))}
+      <div style={{ padding:'6px 16px', marginTop:'8px', fontSize:'10px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.5px' }}>Documents</div>
+      {[
+        { key:'documents', label:'Summary',   icon:'📄' },
+        { key:'byFolder',  label:'By Folder', icon:'📂' },
+      ].map(t => (
+        <div key={t.key} onClick={() => setTab(t.key)}
+          style={{ padding:'8px 16px', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', background: tab===t.key ? '#EFF6FF' : 'transparent', borderLeft: tab===t.key ? '3px solid #2563EB' : '3px solid transparent' }}
+          onMouseEnter={e => { if(tab!==t.key) e.currentTarget.style.background='#F8FAFC'; }}
+          onMouseLeave={e => { if(tab!==t.key) e.currentTarget.style.background='transparent'; }}>
+          <span style={{ fontSize:'13px' }}>{t.icon}</span>
+          <span style={{ fontSize:'13px', color: tab===t.key ? '#2563EB' : '#475569', fontWeight: tab===t.key ? 600 : 400 }}>{t.label}</span>
+        </div>
+      ))}
+    </div>
+  </div>
 
-          <div style={{ flex:1, overflowY:'auto', padding:'24px' }}>
+  {/* Main content */}
+ <div style={{ flex:1, overflowY:'auto', padding:'24px' }}>
             {loading ? (
               <div style={{ textAlign:'center', padding:'60px', color:'#94A3B8' }}>Loading reports...</div>
             ) : (
@@ -352,7 +377,7 @@ export default function ReportsPage() {
                 )}
               </>
             )}
-          </div>
+      </div>
         </main>
       </div>
     </div>
