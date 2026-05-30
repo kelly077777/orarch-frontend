@@ -69,18 +69,41 @@ function UploadModal({ projectId, onClose, onUploaded, folderList = [], docTypeL
   const fileRef = useRef();
 
   const handleUpload = async () => {
-    if (!file) { setError('Please select a file'); return; }
-    setLoading(true); setError('');
-    try {
-      await documents.upload(projectId, file, { title: title || file.name, documentType: docType, folderId });
-      onUploaded(); onClose();
-    } catch {
-      try {
-        await documents.create({ projectId, title: title || file.name, documentType: docType, folderId, description, fileName: file.name, fileSize: file.size, mimeType: file.type, currentVersion: '1.0' });
-        onUploaded(); onClose();
-      } catch (e2) { setError(e2.message || 'Upload failed'); }
-    } finally { setLoading(false); }
-  };
+  if (!file) { setError('Please select a file'); return; }
+  setLoading(true); setError('');
+  try {
+    // Step 1 — upload file to Cloudinary
+    const token = typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('projectId', projectId);
+    const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/files/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload failed');
+
+    // Step 2 — save document metadata + Cloudinary URL
+    await documents.create({
+      projectId,
+      title: title || file.name,
+      documentType: docType,
+      folderId,
+      description,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type,
+      currentVersion: '1.0',
+      fileUrl: uploadData.url,
+      publicId: uploadData.publicId,
+    });
+    onUploaded(); onClose();
+  } catch (err) {
+    setError(err.message || 'Upload failed');
+  } finally { setLoading(false); }
+};
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 }}>
