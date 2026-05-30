@@ -307,6 +307,8 @@ export default function ProjectWorkspace() {
 const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '', folderId: '' });
   const [dataLoading, setDataLoading]   = useState(false);
   const [showUpload, setShowUpload]     = useState(false);
+  const [viewMode, setViewMode] = useState('list');
+  
   const [showApproval, setShowApproval] = useState(null);
   const [folderList, setFolderList]     = useState([]);
   const [addingFolder, setAddingFolder] = useState(false);
@@ -510,7 +512,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1.5" width="10" height="13" rx="1.5" fill="#EFF6FF" stroke="#2563EB" strokeWidth="1.3"/><path d="M5 5.5h6M5 8h4" stroke="#2563EB" strokeWidth="1.3" strokeLinecap="round"/></svg>
         <span style={{ fontSize:'14px', fontWeight:700, color:'#1E293B' }}>Files</span>
       </div>
-      <button style={{ background:'none', border:'none', cursor:'pointer', color:'#94A3B8', display:'flex' }} title="Toggle view">
+      <button onClick={() => setViewMode(v => v === 'list' ? 'grid' : 'list')} style={{ background:'none', border:'none', cursor:'pointer', color: viewMode==='grid' ? '#2563EB' : '#94A3B8', display:'flex' }} title="Toggle view">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="#94A3B8" strokeWidth="1.2"/></svg>
       </button>
     </div>
@@ -733,6 +735,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
                 <span>{activeFolder ? `Files — ${folderList.find(f => f.id === activeFolder)?.name || ''}` : `Files — ${project?.name || ''}`}</span>
                 <span style={{ fontWeight:400 }}>{displayFiles.length} document{displayFiles.length !== 1 ? 's' : ''}</span>
               </div>
+              
              <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:'10px', overflowX:'auto' }}>
                <table style={{ width:'100%', minWidth:'1100px', borderCollapse:'collapse' }}>
                   <thead>
