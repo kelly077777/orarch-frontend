@@ -308,6 +308,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
   const [dataLoading, setDataLoading]   = useState(false);
   const [showUpload, setShowUpload]     = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const [showToolbarMenu, setShowToolbarMenu] = useState(false);
   
   const [showApproval, setShowApproval] = useState(null);
   const [folderList, setFolderList]     = useState([]);
@@ -615,9 +616,35 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
   🔍 Search
 </button>
             <button onClick={() => setAddingFolder(true)} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>New folder</button>
-            {['Download','Share'].map(b => (
-              <button key={b} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>{b}</button>
-            ))}
+            <div style={{ position:'relative' }}>
+  <button onClick={() => setShowToolbarMenu(m => !m)}
+    style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>
+    ···
+  </button>
+  {showToolbarMenu && (
+    <div style={{ position:'absolute', top:'32px', left:0, background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', zIndex:50, minWidth:'200px', overflow:'hidden' }}>
+      {[
+        { label:'Export to .xls', icon:'📊', action: () => {
+          const rows = displayFiles.map(f => `${f.title||f.fileName}\t${f.documentType||''}\t${f.status||''}\t${f.currentVersion||'1.0'}`);
+          const content = ['Name\tType\tStatus\tVersion', ...rows].join('\n');
+          const blob = new Blob([content], { type:'application/vnd.ms-excel' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href=url; a.download='documents.xls'; a.click();
+          URL.revokeObjectURL(url);
+          setShowToolbarMenu(false);
+        }},
+        { label:'Folder notifications', icon:'🔔', action: () => { alert('Folder notifications enabled!'); setShowToolbarMenu(false); }},
+      ].map(item => (
+        <button key={item.label} onClick={item.action}
+          style={{ width:'100%', padding:'10px 16px', border:'none', background:'#fff', textAlign:'left', fontSize:'13px', color:'#1E293B', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px' }}
+          onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'}
+          onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+          {item.icon} {item.label}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
             <button
               onClick={() => {
                 const draft = fileList.find(f => f.status === 'DRAFT' || f.status === 'REJECTED');
