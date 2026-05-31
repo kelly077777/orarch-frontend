@@ -292,6 +292,204 @@ function FileThumbnail({ file }) {
   );
 }
 
+
+function DocumentSlidePanel({ doc, projectId, onClose, user }) {
+  const [activeTab, setActiveTab] = useState('Info');
+  const [comments, setComments] = useState([]);
+  const [message, setMessage] = useState('');
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null;
+
+  const tabs = ['Info', 'Communication', 'Workflows', 'Versions', 'History'];
+
+  useEffect(() => {
+    if (doc) loadComments();
+  }, [doc]);
+
+  const loadComments = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/comments?documentId=${doc.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setComments(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
+  };
+
+  const sendComment = async () => {
+    if (!message.trim()) return;
+    try {
+      await fetch(`${BASE_URL}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ documentId: doc.id, content: message, authorName: `${user.firstName} ${user.lastName}` })
+      });
+      setMessage('');
+      loadComments();
+    } catch (err) { console.error(err); }
+  };
+
+  function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
+  function formatSize(bytes) {
+    if (!bytes) return '—';
+    if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    if (bytes > 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${bytes} B`;
+  }
+
+  if (!doc) return null;
+
+  return (
+    <>
+      {/* Overlay */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
+
+      {/* Slide panel */}
+      <div style={{ position: 'fixed', top: 0, right: 0, width: '780px', height: '100vh', background: '#fff', zIndex: 201, display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 24px rgba(0,0,0,0.15)' }}>
+
+        {/* Toolbar */}
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B' }}>{doc.title || doc.fileName}</span>
+          <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>v{doc.currentVersion || '1.0'}</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+              style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+              Download
+            </button>
+            <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+              style={{ background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}>
+              Open in viewer
+            </button>
+            <button onClick={onClose}
+              style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94A3B8', padding: '0 4px' }}>×</button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+          {/* PDF Preview */}
+          <div style={{ flex: 1, background: '#E2E8F0', overflow: 'hidden' }}>
+            {doc.fileUrl ? (
+              doc.mimeType?.includes('image') ? (
+                <img src={doc.fileUrl} alt={doc.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                <iframe src={doc.fileUrl} title={doc.title} style={{ width: '100%', height: '100%', border: 'none' }} />
+              )
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontSize: '48px' }}>{doc.mimeType?.includes('pdf') ? '📄' : doc.mimeType?.includes('image') ? '🖼️' : '📐'}</div>
+                <div style={{ fontSize: '13px', color: '#94A3B8' }}>No file uploaded yet</div>
+              </div>
+            )}
+          </div>
+
+          {/* Side info */}
+          <div style={{ width: '260px', borderLeft: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Tabs */}
+            <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid #E2E8F0' }}>
+              {tabs.map(t => (
+                <button key={t} onClick={() => setActiveTab(t)}
+                  style={{ padding: '8px 12px', border: 'none', borderBottom: activeTab === t ? '2px solid #2563EB' : '2px solid transparent', background: 'transparent', fontSize: '11px', fontWeight: activeTab === t ? 700 : 400, color: activeTab === t ? '#2563EB' : '#64748B', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
+              {activeTab === 'Info' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {[
+                    { label: 'Uploaded by', value: doc.uploadedBy ? doc.uploadedBy.toString().slice(0, 8) + '...' : '—' },
+                    { label: 'Version', value: `v${doc.currentVersion || '1.0'}` },
+                    { label: 'Upload date', value: formatDate(doc.createdAt) },
+                    { label: 'Size', value: formatSize(doc.fileSize) },
+                    { label: 'Extension', value: doc.fileName?.split('.').pop() || '—' },
+                    { label: 'Status', value: doc.status || '—' },
+                    { label: 'Messages', value: `💬 ${comments.length} Messages` },
+                    { label: 'Attachments', value: '📎 0 Attachments' },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
+                      <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.label}</span>
+                      <span style={{ fontSize: '12px', color: '#1E293B', fontWeight: 500 }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === 'Communication' && (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+                    {comments.length === 0 && <div style={{ fontSize: '12px', color: '#94A3B8' }}>No comments yet</div>}
+                    {comments.map((c, i) => (
+                      <div key={i} style={{ background: '#F8FAFC', borderRadius: '6px', padding: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#1E293B' }}>{c.authorName || 'User'}</span>
+                          <span style={{ fontSize: '10px', color: '#94A3B8' }}>{formatDate(c.createdAt)}</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#475569' }}>{c.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input value={message} onChange={e => setMessage(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') sendComment(); }}
+                      placeholder="Write a comment..."
+                      style={{ flex: 1, border: '1px solid #E2E8F0', borderRadius: '6px', padding: '6px 8px', fontSize: '12px', outline: 'none' }} />
+                    <button onClick={sendComment}
+                      style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>
+                      Send
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'History' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[
+                    { action: 'Created', date: formatDate(doc.createdAt) },
+                    { action: 'Last Updated', date: formatDate(doc.updatedAt) },
+                    { action: `Status: ${doc.status}`, date: formatDate(doc.updatedAt) },
+                  ].map((h, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
+                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563EB', marginTop: '4px', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: '#1E293B' }}>{h.action}</div>
+                        <div style={{ fontSize: '10px', color: '#94A3B8' }}>{h.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === 'Workflows' && (
+                <div style={{ fontSize: '12px', color: '#94A3B8' }}>
+                  Open full document to manage workflows.
+                  <br /><br />
+                  <button onClick={() => { window.location.href = `/document-detail?id=${doc.id}&projectId=${projectId}`; }}
+                    style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>
+                    Open Full Page
+                  </button>
+                </div>
+              )}
+
+              {activeTab === 'Versions' && (
+                <div style={{ fontSize: '12px', color: '#94A3B8' }}>
+                  Open full document to manage versions.
+                  <br /><br />
+                  <button onClick={() => { window.location.href = `/document-detail?id=${doc.id}&projectId=${projectId}`; }}
+                    style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>
+                    Open Full Page
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ProjectWorkspace() {
@@ -307,6 +505,7 @@ export default function ProjectWorkspace() {
 const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '', folderId: '' });
   const [dataLoading, setDataLoading]   = useState(false);
   const [showUpload, setShowUpload]     = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
   const [viewMode, setViewMode] = useState('list');
   const [showToolbarMenu, setShowToolbarMenu] = useState(false);
   
@@ -700,7 +899,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
                             <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                               <span style={{ background: typeColors[fType]||'#F1F5F9', color: typeText[fType]||'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', minWidth:'36px', textAlign:'center' }}>{fType}</span>
                               <div>
-                                <div onClick={() => router.push(`/document-detail?id=${f.id}&projectId=${id}`)} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
+                                <div onClick={() => setSelectedDoc(f)} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
                                 <div style={{ fontSize:'11px', color:'#94A3B8' }}>{f.documentType}</div>
                               </div>
                             </div>
@@ -810,6 +1009,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         <ApprovalModal document={showApproval} projectId={id} onClose={() => setShowApproval(null)} onSent={loadDocuments} />
       )}
       {showAdvSearch && <AdvancedSearchModal onClose={() => setShowAdvSearch(false)} onSearch={s => setAdvSearch(s)} folderList={folderList} />}
+        {selectedDoc && <DocumentSlidePanel doc={selectedDoc} projectId={id} onClose={() => setSelectedDoc(null)} user={user} />}
     </div>
   );
 }
