@@ -322,7 +322,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
   const [docTypeList, setDocTypeList]       = useState([]);
   const [addingDocType, setAddingDocType]   = useState(false);
   const [newDocTypeName, setNewDocTypeName] = useState('');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [navCollapsed, setNavCollapsed] = useState(false);
 
   useEffect(() => {
