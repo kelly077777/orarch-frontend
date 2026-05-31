@@ -475,7 +475,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         {/* ── NARROW DARK ICON STRIP ── */}
 
         
-<div style={{ width: sidebarCollapsed ? '48px' : '180px', background:'#1E293B', display:'flex', flexDirection:'column', flexShrink:0, transition:'width 0.2s ease' }}>
+<div style={{ width: '48px', background:'#1E293B', display:'flex', flexDirection:'column', flexShrink:0, transition:'width 0.2s ease' }}>
   {[
     { title:'Files', active:true, path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
     { title:'Address Book', path:'/address-book', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
@@ -488,7 +488,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
       onMouseEnter={e => { if (!item.active) e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
       onMouseLeave={e => { if (!item.active) e.currentTarget.style.background='transparent'; }}>
       {item.icon}
-      {!sidebarCollapsed && <span style={{ fontSize:'13px', color: item.active ? '#fff' : '#94A3B8', fontWeight: item.active ? 600 : 400, whiteSpace:'nowrap' }}>{item.title}</span>}
+     
     </button>
   ))}
   <div style={{ marginTop:'auto', padding:'12px' }}>
