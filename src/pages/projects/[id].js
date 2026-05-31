@@ -505,7 +505,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
 
   
 {/* ── WHITE FOLDER PANEL ── */}
-{!sidebarCollapsed && (
+{sidebarCollapsed && (
   <aside style={{ width:'220px', background:'#fff', borderRight:'1px solid #E2E8F0', display:'flex', flexDirection:'column', flexShrink:0 }}>
     {/* Files header */}
     <div style={{ padding:'14px 16px 10px', borderBottom:'1px solid #F1F5F9', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
