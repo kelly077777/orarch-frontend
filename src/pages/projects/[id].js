@@ -525,10 +525,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
               style={{ padding:'7px 16px', borderRadius:'6px', border:'none', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
               + Upload
             </button>
-            <button onClick={() => setShowAdvSearch(true)}
-  style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px' }}>
-  🔍 Search
-</button>
+           
             <button onClick={() => setAddingFolder(true)} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>New folder</button>
             <div style={{ position:'relative' }}>
   <button onClick={() => setShowToolbarMenu(m => !m)}
