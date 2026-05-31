@@ -475,7 +475,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         {/* ── NARROW DARK ICON STRIP ── */}
 
         
-<div style={{ width: '48px', background:'#1E293B', display:'flex', flexDirection:'column', flexShrink:0, transition:'width 0.2s ease' }}>
+<div style={{ width: sidebarCollapsed ? '48px' : '180px', background:'#1E293B', display:'flex', flexDirection:'column', flexShrink:0, transition:'width 0.2s ease' }}>
   {[
     { title:'Files', active:true, path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
     { title:'Address Book', path:'/address-book', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
@@ -519,14 +519,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
     </div>
 
     <div style={{ flex:1, overflowY:'auto' }}>
-      {/* Recent files */}
-      <div onClick={() => setActiveFolder(null)}
-        style={{ display:'flex', alignItems:'center', gap:'8px', padding:'9px 16px', cursor:'pointer', background: activeFolder === null ? '#EFF6FF' : 'transparent', borderLeft: activeFolder === null ? '3px solid #2563EB' : '3px solid transparent' }}
-        onMouseEnter={e => { if (activeFolder !== null) e.currentTarget.style.background='#F8FAFC'; }}
-        onMouseLeave={e => { if (activeFolder !== null) e.currentTarget.style.background='transparent'; }}>
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke={activeFolder === null ? '#2563EB' : '#94A3B8'} strokeWidth="1.3"/><path d="M6.5 4v2.5l1.5 1.5" stroke={activeFolder === null ? '#2563EB' : '#94A3B8'} strokeWidth="1.3" strokeLinecap="round"/></svg>
-        <span style={{ fontSize:'13px', fontWeight: activeFolder === null ? 600 : 400, color: activeFolder === null ? '#2563EB' : '#475569' }}>Recent files</span>
-      </div>
+     
 
       {/* Folders header */}
       <div style={{ padding:'10px 16px 4px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
