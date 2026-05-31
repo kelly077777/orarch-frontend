@@ -321,7 +321,7 @@ export default function ProjectsPage() {
                 ))}
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px' }}>
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 300px))', gap: '16px' }}>
                 {filtered.map((p, i) => (
                   <ProjectCard key={p.id} project={p} index={i} onClick={() => handleSelect(p)} />
                 ))}
