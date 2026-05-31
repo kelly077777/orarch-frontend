@@ -291,20 +291,18 @@ function FileThumbnail({ file }) {
     </div>
   );
 }
-
-
-function DocumentSlidePanel({ doc, projectId, onClose, user }) {
+function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
   const [activeTab, setActiveTab] = useState('Info');
   const [comments, setComments] = useState([]);
   const [message, setMessage] = useState('');
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
   const token = typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null;
 
-  const tabs = ['Info', 'Communication', 'Workflows', 'Versions', 'History'];
+  const currentIndex = allDocs.findIndex(d => d.id === doc.id);
+  const prevDoc = currentIndex > 0 ? allDocs[currentIndex - 1] : null;
+  const nextDoc = currentIndex < allDocs.length - 1 ? allDocs[currentIndex + 1] : null;
 
-  useEffect(() => {
-    if (doc) loadComments();
-  }, [doc]);
+  useEffect(() => { if (doc) loadComments(); }, [doc]);
 
   const loadComments = async () => {
     try {
@@ -322,12 +320,10 @@ function DocumentSlidePanel({ doc, projectId, onClose, user }) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ documentId: doc.id, content: message, authorName: `${user.firstName} ${user.lastName}` })
       });
-      setMessage('');
-      loadComments();
+      setMessage(''); loadComments();
     } catch (err) { console.error(err); }
   };
 
-  function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
   function formatSize(bytes) {
     if (!bytes) return '—';
     if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -335,151 +331,152 @@ function DocumentSlidePanel({ doc, projectId, onClose, user }) {
     return `${bytes} B`;
   }
 
-  if (!doc) return null;
+  const tabs = ['Communication', 'Workflows', 'Versions', 'History'];
 
   return (
     <>
-      {/* Overlay */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 200 }} />
-
-      {/* Slide panel */}
-      <div style={{ position: 'fixed', top: 0, right: 0, width: '780px', height: '100vh', background: '#fff', zIndex: 201, display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 24px rgba(0,0,0,0.15)' }}>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:200 }} />
+      <div style={{ position:'fixed', top:0, right:0, width:'720px', height:'100vh', background:'#fff', zIndex:201, display:'flex', flexDirection:'column', boxShadow:'-4px 0 24px rgba(0,0,0,0.15)' }}>
 
         {/* Toolbar */}
-        <div style={{ padding: '12px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B' }}>{doc.title || doc.fileName}</span>
-          <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>v{doc.currentVersion || '1.0'}</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-            <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
-              style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-              Download
-            </button>
-            <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
-              style={{ background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', cursor: 'pointer' }}>
-              Open in viewer
-            </button>
-            <button onClick={onClose}
-              style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94A3B8', padding: '0 4px' }}>×</button>
+        <div style={{ padding:'10px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', gap:'10px', background:'#fff' }}>
+          <span style={{ fontSize:'14px', fontWeight:700, color:'#1E293B', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{doc.title || doc.fileName}</span>
+          <span style={{ background:'#EFF6FF', color:'#2563EB', fontSize:'11px', fontWeight:600, padding:'2px 8px', borderRadius:'4px', flexShrink:0 }}>v{doc.currentVersion || '1.0'}</span>
+          <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
+            <button onClick={() => prevDoc && onClose(prevDoc)} disabled={!prevDoc}
+              style={{ background:'none', border:'1px solid #E2E8F0', borderRadius:'4px', padding:'4px 8px', cursor: prevDoc ? 'pointer' : 'not-allowed', color: prevDoc ? '#475569' : '#CBD5E1', fontSize:'14px' }}>‹</button>
+            <button onClick={() => nextDoc && onClose(nextDoc)} disabled={!nextDoc}
+              style={{ background:'none', border:'1px solid #E2E8F0', borderRadius:'4px', padding:'4px 8px', cursor: nextDoc ? 'pointer' : 'not-allowed', color: nextDoc ? '#475569' : '#CBD5E1', fontSize:'14px' }}>›</button>
           </div>
+          <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+            style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer', flexShrink:0 }}>
+            Download
+          </button>
+          <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+            style={{ background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'6px', padding:'6px 14px', fontSize:'12px', cursor:'pointer', flexShrink:0 }}>
+            Open in viewer
+          </button>
+          <button style={{ background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'6px', padding:'6px 10px', fontSize:'14px', cursor:'pointer', flexShrink:0 }}>···</button>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#94A3B8', flexShrink:0 }}>×</button>
         </div>
 
         {/* Content */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
           {/* PDF Preview */}
-          <div style={{ flex: 1, background: '#E2E8F0', overflow: 'hidden' }}>
+          <div style={{ flex:1, background:'#E2E8F0', overflow:'hidden', position:'relative' }}>
             {doc.fileUrl ? (
               doc.mimeType?.includes('image') ? (
-                <img src={doc.fileUrl} alt={doc.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }} />
               ) : (
-                <iframe src={doc.fileUrl} title={doc.title} style={{ width: '100%', height: '100%', border: 'none' }} />
+                <iframe src={doc.fileUrl} title={doc.title} style={{ width:'100%', height:'100%', border:'none' }} />
               )
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ fontSize: '48px' }}>{doc.mimeType?.includes('pdf') ? '📄' : doc.mimeType?.includes('image') ? '🖼️' : '📐'}</div>
-                <div style={{ fontSize: '13px', color: '#94A3B8' }}>No file uploaded yet</div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'12px' }}>
+                <div style={{ fontSize:'64px' }}>{doc.mimeType?.includes('pdf') ? '📄' : doc.mimeType?.includes('image') ? '🖼️' : '📐'}</div>
+                <div style={{ fontSize:'13px', color:'#94A3B8' }}>No file uploaded yet</div>
+                <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); }}
+                  style={{ background:'rgba(0,0,0,0.5)', color:'#fff', border:'none', borderRadius:'20px', padding:'8px 20px', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
+                  👁 Open in viewer
+                </button>
               </div>
             )}
           </div>
 
-          {/* Side info */}
-          <div style={{ width: '260px', borderLeft: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Tabs */}
-            <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid #E2E8F0' }}>
+          {/* Right Info Panel */}
+          <div style={{ width:'220px', borderLeft:'1px solid #E2E8F0', display:'flex', flexDirection:'column', overflow:'hidden', background:'#fff' }}>
+
+            {/* Info section - always visible, no tab */}
+            <div style={{ padding:'14px', borderBottom:'1px solid #E2E8F0' }}>
+              {[
+                { label:'Uploaded by', value: doc.uploadedBy ? doc.uploadedBy.toString().slice(0,8)+'...' : '—' },
+                { label:'Locked by', value: '—' },
+                { label:'Version', value: `v${doc.currentVersion || '1.0'}` },
+                { label:'Upload date', value: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—' },
+                { label:'Size', value: formatSize(doc.fileSize) },
+                { label:'Extension', value: doc.fileName?.split('.').pop()?.toLowerCase() || '—' },
+                { label:'Location', value: doc.documentType || '—' },
+              ].map(item => (
+                <div key={item.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'8px' }}>
+                  <span style={{ fontSize:'11px', color:'#94A3B8', flexShrink:0 }}>{item.label}</span>
+                  <span style={{ fontSize:'11px', color:'#1E293B', fontWeight:500, textAlign:'right', marginLeft:'8px' }}>{item.value}</span>
+                </div>
+              ))}
+              <div style={{ marginBottom:'8px' }}>
+                <span style={{ fontSize:'11px', color:'#94A3B8' }}>Status</span>
+                <div style={{ fontSize:'11px', color:'#1E293B', fontWeight:600, marginTop:'2px' }}>{doc.status || 'DRAFT'}</div>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'8px' }}>
+                <span style={{ fontSize:'11px', color:'#94A3B8' }}>Messages</span>
+                <span style={{ fontSize:'11px', color:'#1E293B' }}>💬 {comments.length} Messages</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'8px' }}>
+                <span style={{ fontSize:'11px', color:'#94A3B8' }}>Attachments</span>
+                <span style={{ fontSize:'11px', color:'#1E293B' }}>📎 0 Attachments</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <span style={{ fontSize:'11px', color:'#94A3B8' }}>Shared with</span>
+                <span style={{ fontSize:'11px', color:'#1E293B' }}>—</span>
+              </div>
+            </div>
+
+            {/* Tabs for Communication etc */}
+            <div style={{ display:'flex', overflowX:'auto', borderBottom:'1px solid #E2E8F0', flexShrink:0 }}>
               {tabs.map(t => (
                 <button key={t} onClick={() => setActiveTab(t)}
-                  style={{ padding: '8px 12px', border: 'none', borderBottom: activeTab === t ? '2px solid #2563EB' : '2px solid transparent', background: 'transparent', fontSize: '11px', fontWeight: activeTab === t ? 700 : 400, color: activeTab === t ? '#2563EB' : '#64748B', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  style={{ padding:'7px 10px', border:'none', borderBottom: activeTab===t ? '2px solid #2563EB' : '2px solid transparent', background:'transparent', fontSize:'10px', fontWeight: activeTab===t ? 700 : 400, color: activeTab===t ? '#2563EB' : '#64748B', cursor:'pointer', whiteSpace:'nowrap' }}>
                   {t}
                 </button>
               ))}
             </div>
 
-            {/* Tab content */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
-              {activeTab === 'Info' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {[
-                    { label: 'Uploaded by', value: doc.uploadedBy ? doc.uploadedBy.toString().slice(0, 8) + '...' : '—' },
-                    { label: 'Version', value: `v${doc.currentVersion || '1.0'}` },
-                    { label: 'Upload date', value: formatDate(doc.createdAt) },
-                    { label: 'Size', value: formatSize(doc.fileSize) },
-                    { label: 'Extension', value: doc.fileName?.split('.').pop() || '—' },
-                    { label: 'Status', value: doc.status || '—' },
-                    { label: 'Messages', value: `💬 ${comments.length} Messages` },
-                    { label: 'Attachments', value: '📎 0 Attachments' },
-                  ].map(item => (
-                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
-                      <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.label}</span>
-                      <span style={{ fontSize: '12px', color: '#1E293B', fontWeight: 500 }}>{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
+            <div style={{ flex:1, overflowY:'auto', padding:'12px' }}>
               {activeTab === 'Communication' && (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
-                    {comments.length === 0 && <div style={{ fontSize: '12px', color: '#94A3B8' }}>No comments yet</div>}
+                <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+                  <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'8px', marginBottom:'8px' }}>
+                    {comments.length === 0 && <div style={{ fontSize:'12px', color:'#94A3B8' }}>No comments yet</div>}
                     {comments.map((c, i) => (
-                      <div key={i} style={{ background: '#F8FAFC', borderRadius: '6px', padding: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#1E293B' }}>{c.authorName || 'User'}</span>
-                          <span style={{ fontSize: '10px', color: '#94A3B8' }}>{formatDate(c.createdAt)}</span>
+                      <div key={i} style={{ background:'#F8FAFC', borderRadius:'6px', padding:'8px' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'4px' }}>
+                          <span style={{ fontSize:'11px', fontWeight:700, color:'#1E293B' }}>{c.authorName || 'User'}</span>
+                          <span style={{ fontSize:'10px', color:'#94A3B8' }}>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}</span>
                         </div>
-                        <div style={{ fontSize: '12px', color: '#475569' }}>{c.content}</div>
+                        <div style={{ fontSize:'11px', color:'#475569' }}>{c.content}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display:'flex', gap:'6px' }}>
                     <input value={message} onChange={e => setMessage(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') sendComment(); }}
+                      onKeyDown={e => { if (e.key==='Enter') sendComment(); }}
                       placeholder="Write a comment..."
-                      style={{ flex: 1, border: '1px solid #E2E8F0', borderRadius: '6px', padding: '6px 8px', fontSize: '12px', outline: 'none' }} />
+                      style={{ flex:1, border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 8px', fontSize:'11px', outline:'none' }} />
                     <button onClick={sendComment}
-                      style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '12px', cursor: 'pointer' }}>
-                      Send
-                    </button>
+                      style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 10px', fontSize:'11px', cursor:'pointer' }}>Send</button>
                   </div>
                 </div>
               )}
-
+              {(activeTab === 'Workflows' || activeTab === 'Versions') && (
+                <div style={{ fontSize:'12px', color:'#94A3B8', textAlign:'center', paddingTop:'20px' }}>
+                  <button onClick={() => { window.location.href = `/document-detail?id=${doc.id}&projectId=${projectId}`; }}
+                    style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'7px 14px', fontSize:'12px', cursor:'pointer' }}>
+                    Open Full Page
+                  </button>
+                </div>
+              )}
               {activeTab === 'History' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
                   {[
-                    { action: 'Created', date: formatDate(doc.createdAt) },
-                    { action: 'Last Updated', date: formatDate(doc.updatedAt) },
-                    { action: `Status: ${doc.status}`, date: formatDate(doc.updatedAt) },
+                    { action:'Created', date: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—' },
+                    { action:`Status: ${doc.status}`, date: doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString() : '—' },
                   ].map((h, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: '1px solid #F1F5F9' }}>
-                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563EB', marginTop: '4px', flexShrink: 0 }} />
+                    <div key={i} style={{ display:'flex', gap:'8px', paddingBottom:'8px', borderBottom:'1px solid #F1F5F9' }}>
+                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#2563EB', marginTop:'4px', flexShrink:0 }} />
                       <div>
-                        <div style={{ fontSize: '11px', fontWeight: 600, color: '#1E293B' }}>{h.action}</div>
-                        <div style={{ fontSize: '10px', color: '#94A3B8' }}>{h.date}</div>
+                        <div style={{ fontSize:'11px', fontWeight:600, color:'#1E293B' }}>{h.action}</div>
+                        <div style={{ fontSize:'10px', color:'#94A3B8' }}>{h.date}</div>
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {activeTab === 'Workflows' && (
-                <div style={{ fontSize: '12px', color: '#94A3B8' }}>
-                  Open full document to manage workflows.
-                  <br /><br />
-                  <button onClick={() => { window.location.href = `/document-detail?id=${doc.id}&projectId=${projectId}`; }}
-                    style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>
-                    Open Full Page
-                  </button>
-                </div>
-              )}
-
-              {activeTab === 'Versions' && (
-                <div style={{ fontSize: '12px', color: '#94A3B8' }}>
-                  Open full document to manage versions.
-                  <br /><br />
-                  <button onClick={() => { window.location.href = `/document-detail?id=${doc.id}&projectId=${projectId}`; }}
-                    style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '12px', cursor: 'pointer' }}>
-                    Open Full Page
-                  </button>
                 </div>
               )}
             </div>
@@ -1009,7 +1006,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         <ApprovalModal document={showApproval} projectId={id} onClose={() => setShowApproval(null)} onSent={loadDocuments} />
       )}
       {showAdvSearch && <AdvancedSearchModal onClose={() => setShowAdvSearch(false)} onSearch={s => setAdvSearch(s)} folderList={folderList} />}
-        {selectedDoc && <DocumentSlidePanel doc={selectedDoc} projectId={id} onClose={() => setSelectedDoc(null)} user={user} />}
+       {selectedDoc && <DocumentSlidePanel doc={selectedDoc} projectId={id} onClose={(newDoc) => newDoc ? setSelectedDoc(newDoc) : setSelectedDoc(null)} user={user} allDocs={fileList} />}
     </div>
   );
 }
