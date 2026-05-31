@@ -556,15 +556,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
     </div>
   )}
 </div>
-            <button
-              onClick={() => {
-                const draft = fileList.find(f => f.status === 'DRAFT' || f.status === 'REJECTED');
-                if (draft) setShowApproval(draft);
-                else alert('Select a Draft or Rejected document first');
-              }}
-              style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>
-              Send for approval
-            </button>
+           
             <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'8px' }}>
               <span style={{ fontSize:'12px', color:'#94A3B8' }}>Sort:</span>
               <select value={sortBy} onChange={e => setSortBy(e.target.value)}
