@@ -348,11 +348,11 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
             <button onClick={() => nextDoc && onClose(nextDoc)} disabled={!nextDoc}
               style={{ background:'none', border:'1px solid #E2E8F0', borderRadius:'4px', padding:'4px 8px', cursor: nextDoc ? 'pointer' : 'not-allowed', color: nextDoc ? '#475569' : '#CBD5E1', fontSize:'14px' }}>›</button>
           </div>
-          <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+          <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName)); else alert('No file attached yet.'); }}
             style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer', flexShrink:0 }}>
             Download
           </button>
-          <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); else alert('No file attached yet.'); }}
+          <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName)); else alert('No file attached yet.'); }}
             style={{ background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'6px', padding:'6px 14px', fontSize:'12px', cursor:'pointer', flexShrink:0 }}>
             Open in viewer
           </button>
@@ -382,7 +382,7 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
                             />
                           : <div style={{ color:'#94A3B8', fontSize:'13px', marginTop:'40px' }}>No preview available</div>
                         }
-                        <div onClick={() => window.open(doc.fileUrl, '_blank')}
+                        <div onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
                           style={{ position:'absolute', bottom:'24px', left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.65)', color:'#fff', borderRadius:'20px', padding:'8px 20px', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', backdropFilter:'blur(4px)', whiteSpace:'nowrap' }}>
                           👁 Open in viewer
                         </div>
@@ -393,7 +393,7 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
                     <div style={{ fontSize:'64px' }}>📐</div>
                     <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>{doc.title || doc.fileName}</div>
-                    <button onClick={() => window.open(doc.fileUrl, '_blank')}
+                    <button onClick={() =>router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
                       style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'10px 24px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
                       Open in Viewer ↗
                     </button>
@@ -404,7 +404,7 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'12px' }}>
                 <div style={{ fontSize:'64px' }}>{doc.mimeType?.includes('pdf') ? '📄' : doc.mimeType?.includes('image') ? '🖼️' : '📐'}</div>
                 <div style={{ fontSize:'13px', color:'#94A3B8' }}>No file uploaded yet</div>
-                <button onClick={() => { if (doc.fileUrl) window.open(doc.fileUrl, '_blank'); }}
+                <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName)); }}
                   style={{ background:'rgba(0,0,0,0.5)', color:'#fff', border:'none', borderRadius:'20px', padding:'8px 20px', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
                   👁 Open in viewer
                 </button>
