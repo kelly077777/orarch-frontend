@@ -368,15 +368,23 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
             {doc.fileUrl ? (
               doc.mimeType?.includes('image') ? (
                 <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }} />
-             ) : (
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
-                  <div style={{ fontSize:'64px' }}>{doc.mimeType?.includes('pdf') ? '📄' : '📐'}</div>
-                  <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>{doc.title || doc.fileName}</div>
-                  <button onClick={() => window.open(doc.fileUrl, '_blank')}
-                    style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'10px 24px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
-                    Open in Viewer ↗
-                  </button>
-                </div>
+    ) : (
+                doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
+                  <iframe
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(doc.fileUrl)}&embedded=true`}
+                    title={doc.title}
+                    style={{ width:'100%', height:'100%', border:'none' }}
+                  />
+                ) : (
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
+                    <div style={{ fontSize:'64px' }}>📐</div>
+                    <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>{doc.title || doc.fileName}</div>
+                    <button onClick={() => window.open(doc.fileUrl, '_blank')}
+                      style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'10px 24px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
+                      Open in Viewer ↗
+                    </button>
+                  </div>
+                )
               )
             ) : (
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'12px' }}>
