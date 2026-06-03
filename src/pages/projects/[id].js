@@ -365,16 +365,30 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
 
           {/* PDF Preview */}
           <div style={{ flex:1, background:'#E2E8F0', overflow:'hidden', position:'relative' }}>
-         {doc.fileUrl ? (
+            {doc.fileUrl ? (
               doc.mimeType?.includes('image') ? (
                 <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }} />
-              ) : (
-                doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
-                  <iframe
-                    src={doc.fileUrl}
-                    title={doc.title}
-                    style={{ width:'100%', height:'100%', border:'none' }}
-                  />
+    ) : (
+            doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
+                  (() => {
+                    const previewUrl = doc.fileUrl
+                      ? doc.fileUrl.replace('/image/upload/', '/image/upload/pg_1,w_800,f_jpg/')
+                      : null;
+                    return (
+                    <div style={{ width:'100%', height:'100%', overflow:'hidden', background:'#909090', display:'flex', alignItems:'center', justifyContent:'center', padding:'0', position:'relative' }}>
+                        {previewUrl
+                         ? <img src={previewUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }}
+                              onError={e => { e.target.style.display='none'; }}
+                            />
+                          : <div style={{ color:'#94A3B8', fontSize:'13px', marginTop:'40px' }}>No preview available</div>
+                        }
+                        <div onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
+                          style={{ position:'absolute', bottom:'24px', left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.65)', color:'#fff', borderRadius:'20px', padding:'8px 20px', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', backdropFilter:'blur(4px)', whiteSpace:'nowrap' }}>
+                          👁 Open in viewer
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
                     <div style={{ fontSize:'64px' }}>📐</div>
@@ -905,7 +919,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
                             <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                               <span style={{ background: typeColors[fType]||'#F1F5F9', color: typeText[fType]||'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', minWidth:'36px', textAlign:'center' }}>{fType}</span>
                               <div>
-                               <div onClick={() => setSelectedDoc(f)} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
+                                <div onClick={() => router.push(`/document-detail?id=${f.id}&projectId=${id}`)} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
                                 <div style={{ fontSize:'11px', color:'#94A3B8' }}>{f.documentType}</div>
                               </div>
                             </div>
