@@ -375,9 +375,9 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
                       ? doc.fileUrl.replace('/image/upload/', '/image/upload/pg_1,w_800,f_jpg/')
                       : null;
                     return (
-                    <div style={{ width:'100%', height:'100%', overflow:'hidden', background:'#525659', position:'relative' }}>
+                    <div style={{ width:'100%', height:'100%', overflow:'hidden', background:'#525659', position:'relative', display:'flex', alignItems:'center', justifyContent:'center' }}>
                         {previewUrl
-                        ? <img src={previewUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                        ? <img src={previewUrl} alt={doc.title} style={{ maxWidth:'80%', maxHeight:'80%', objectFit:'contain', boxShadow:'0 2px 16px rgba(0,0,0,0.4)' }}
                               onError={e => { e.target.style.display='none'; }}
                             />
                           : <div style={{ color:'#94A3B8', fontSize:'13px', marginTop:'40px' }}>No preview available</div>
