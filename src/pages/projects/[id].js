@@ -369,12 +369,26 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
               doc.mimeType?.includes('image') ? (
                 <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }} />
     ) : (
-                doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
-                  <iframe
-                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(doc.fileUrl)}&embedded=true`}
-                    title={doc.title}
-                    style={{ width:'100%', height:'100%', border:'none' }}
-                  />
+            doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
+                  (() => {
+                    const previewUrl = doc.fileUrl
+                      ? doc.fileUrl.replace('/image/upload/', '/image/upload/pg_1,w_800,f_jpg/')
+                      : null;
+                    return (
+                      <div style={{ width:'100%', height:'100%', overflow:'auto', background:'#2D3748', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'16px', boxSizing:'border-box', position:'relative' }}>
+                        {previewUrl
+                          ? <img src={previewUrl} alt={doc.title} style={{ maxWidth:'100%', boxShadow:'0 4px 24px rgba(0,0,0,0.4)', borderRadius:'2px' }}
+                              onError={e => { e.target.style.display='none'; }}
+                            />
+                          : <div style={{ color:'#94A3B8', fontSize:'13px', marginTop:'40px' }}>No preview available</div>
+                        }
+                        <div onClick={() => window.open(doc.fileUrl, '_blank')}
+                          style={{ position:'absolute', bottom:'24px', left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.65)', color:'#fff', borderRadius:'20px', padding:'8px 20px', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', backdropFilter:'blur(4px)', whiteSpace:'nowrap' }}>
+                          👁 Open in viewer
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
                     <div style={{ fontSize:'64px' }}>📐</div>
