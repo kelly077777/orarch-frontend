@@ -419,7 +419,15 @@ export default function DocumentDetailPage() {
                 doc?.mimeType?.includes('image') ? (
                   <img src={doc.fileUrl} alt={doc.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
-                  <iframe src={doc.fileUrl} title={doc.title} style={{ width: '100%', height: '100%', border: 'none' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '16px', background: '#E2E8F0' }}>
+  <div style={{ fontSize: '64px' }}>📄</div>
+  <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>{doc?.title || doc?.fileName}</div>
+  <div style={{ fontSize: '12px', color: '#64748B' }}>{doc?.documentType} · {formatSize(doc?.fileSize)}</div>
+  <button onClick={() => window.open(doc.fileUrl, '_blank')}
+    style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+    Open in Viewer ↗
+  </button>
+</div>
                 )
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '12px' }}>
