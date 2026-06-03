@@ -368,8 +368,15 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
             {doc.fileUrl ? (
               doc.mimeType?.includes('image') ? (
                 <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }} />
-              ) : (
-                <iframe src={doc.fileUrl} title={doc.title} style={{ width:'100%', height:'100%', border:'none' }} />
+             ) : (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
+                  <div style={{ fontSize:'64px' }}>{doc.mimeType?.includes('pdf') ? '📄' : '📐'}</div>
+                  <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>{doc.title || doc.fileName}</div>
+                  <button onClick={() => window.open(doc.fileUrl, '_blank')}
+                    style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'10px 24px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
+                    Open in Viewer ↗
+                  </button>
+                </div>
               )
             ) : (
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'12px' }}>
@@ -671,32 +678,26 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         {/* ── NARROW DARK ICON STRIP ── */}
 
         
-<div style={{ width: sidebarCollapsed ? '48px' : '180px', background:'#1E293B', display:'flex', flexDirection:'column', flexShrink:0, transition:'width 0.2s ease' }}>
+<div style={{ width:'80px', background:'#1E293B', display:'grid', gridTemplateColumns:'1fr 1fr', alignContent:'start', flexShrink:0, paddingTop:'12px', gap:'2px' }}>
   {[
     { title:'Files', active:true, path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title:'Info', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 8v5M9 6v.5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
     { title:'Address Book', path:'/address-book', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title:'Grid', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="10" y="2" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="2" y="10" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="10" y="10" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/></svg> },
     { title:'Tasks', path:'/tasks', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 7h10M4 11h7M4 3h14" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title:'Bookmark', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 2h8a1 1 0 011 1v13l-4.5-3L5 16V3a1 1 0 011-1z" stroke="#94A3B8" strokeWidth="1.4" strokeLinejoin="round"/></svg> },
     { title:'Messages', path:'/messages', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { title:'Settings', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="2.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.2 4.2l1.4 1.4M12.4 12.4l1.4 1.4M4.2 13.8l1.4-1.4M12.4 5.6l1.4-1.4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
     { title:'Reports', path:'/reports', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 14V6l4 4 4-4 4 4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { title:'Link', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7.5 10.5a3.5 3.5 0 005 0l2-2a3.5 3.5 0 00-5-5L8 5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/><path d="M10.5 7.5a3.5 3.5 0 00-5 0l-2 2a3.5 3.5 0 005 5L10 13" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
   ].map(item => (
     <button key={item.title} title={item.title} onClick={() => item.path && router.push(item.path)}
-      style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', background: item.active ? 'rgba(255,255,255,0.15)' : 'transparent', border:'none', cursor:'pointer', width:'100%', borderLeft: item.active ? '3px solid #2563EB' : '3px solid transparent' }}
-      onMouseEnter={e => { if (!item.active) e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
+      style={{ width:'38px', height:'38px', borderRadius:'8px', background: item.active ? 'rgba(255,255,255,0.15)' : 'transparent', border:'none', cursor: item.path ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', margin:'1px auto' }}
+      onMouseEnter={e => { if (!item.active && item.path) e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
       onMouseLeave={e => { if (!item.active) e.currentTarget.style.background='transparent'; }}>
       {item.icon}
-      {!sidebarCollapsed && <span style={{ fontSize:'13px', color: item.active ? '#fff' : '#94A3B8', fontWeight: item.active ? 600 : 400, whiteSpace:'nowrap' }}>{item.title}</span>}
     </button>
   ))}
-  <div style={{ marginTop:'auto', padding:'12px' }}>
-    <button onClick={() => setSidebarCollapsed(c => !c)}
-      style={{ display:'flex', alignItems:'center', gap:'8px', background:'none', border:'none', cursor:'pointer', color:'#64748B', padding:'6px', width:'100%' }}>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d={sidebarCollapsed ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-      {!sidebarCollapsed && <span style={{ fontSize:'12px', whiteSpace:'nowrap' }}>Collapse</span>}
-    </button>
-  </div>
-
 </div>
 
   
