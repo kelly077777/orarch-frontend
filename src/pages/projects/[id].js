@@ -291,6 +291,72 @@ function FileThumbnail({ file }) {
     </div>
   );
 }
+
+function PdfPreview({ url }) {
+  const canvasRef = useRef();
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!url) return;
+    setLoaded(false);
+    setError(false);
+
+    const loadPdf = async () => {
+      try {
+        if (!window.pdfjsLib) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const pdf = await window.pdfjsLib.getDocument({
+          url,
+          withCredentials: false,
+        }).promise;
+
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        setLoaded(true);
+      } catch (err) {
+        console.error('PDF load error:', err);
+        setError(true);
+      }
+    };
+
+    loadPdf();
+  }, [url]);
+
+  return (
+    <div style={{ width:'100%', height:'100%', background:'#525659', display:'flex', alignItems:'center', justifyContent:'center', overflow:'auto', position:'relative' }}>
+      {!loaded && !error && (
+        <div style={{ color:'#ccc', fontSize:'13px' }}>Loading PDF...</div>
+      )}
+      {error && (
+        <div style={{ color:'#ccc', fontSize:'13px', textAlign:'center' }}>
+          <div style={{ fontSize:'48px', marginBottom:'12px' }}>📄</div>
+          <div>Cannot preview this file</div>
+          <button onClick={() => window.open(url, '_blank')}
+            style={{ marginTop:'12px', background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'8px 20px', fontSize:'13px', cursor:'pointer' }}>
+            Open in Browser
+          </button>
+        </div>
+      )}
+      <canvas ref={canvasRef} style={{ display: loaded ? 'block' : 'none', boxShadow:'0 4px 24px rgba(0,0,0,0.5)', maxWidth:'90%' }} />
+    </div>
+  );
+}
 function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
   const [activeTab, setActiveTab] = useState('Info');
   const [comments, setComments] = useState([]);
@@ -369,26 +435,8 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
               doc.mimeType?.includes('image') ? (
                 <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }} />
     ) : (
-            doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
-                  (() => {
-                    const previewUrl = doc.fileUrl
-                      ? doc.fileUrl.replace('/image/upload/', '/image/upload/pg_1,w_800,f_jpg/')
-                      : null;
-                    return (
-                    <div style={{ width:'100%', height:'100%', overflow:'hidden', background:'#525659', position:'relative', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        {previewUrl
-                        ? <img src={previewUrl} alt={doc.title} style={{ maxWidth:'80%', maxHeight:'80%', objectFit:'contain', boxShadow:'0 2px 16px rgba(0,0,0,0.4)' }}
-                              onError={e => { e.target.style.display='none'; }}
-                            />
-                          : <div style={{ color:'#94A3B8', fontSize:'13px', marginTop:'40px' }}>No preview available</div>
-                        }
-                       <div onClick={() => window.open(doc.fileUrl, '_blank')}
-                          style={{ position:'absolute', bottom:'24px', left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.65)', color:'#fff', borderRadius:'20px', padding:'8px 20px', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', backdropFilter:'blur(4px)', whiteSpace:'nowrap' }}>
-                          👁 Open in viewer
-                        </div>
-                      </div>
-                    );
-                  })()
+           doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
+                  <PdfPreview url={doc.fileUrl} />
                 ) : (
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
                     <div style={{ fontSize:'64px' }}>📐</div>
