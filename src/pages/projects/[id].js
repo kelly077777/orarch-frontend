@@ -405,7 +405,7 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:200 }} />
-      <div style={{ position:'fixed', top:0, right:0, width:'85vw', height:'100vh', background:'#fff', zIndex:201, display:'flex', flexDirection:'column', boxShadow:'-4px 0 24px rgba(0,0,0,0.15)' }}>
+     <div style={{ position:'fixed', top:0, left:0, right:0, width:'100vw', height:'100vh', background:'#fff', zIndex:201, display:'flex', flexDirection:'column', boxShadow:'-4px 0 24px rgba(0,0,0,0.15)' }}>
 
         {/* Toolbar */}
         <div style={{ padding:'10px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', gap:'10px', background:'#fff' }}>
