@@ -13,3 +13,8 @@ body {
   background: #F8FAFC;
   color: #1E293B;
 }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
