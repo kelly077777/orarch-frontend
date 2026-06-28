@@ -1084,3 +1084,11 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
     </div>
   );
 }
+// ── Static export support (client-side rendered; id read from router.query) ──
+export async function getStaticPaths() {
+  return { paths: [], fallback: false };
+}
+
+export async function getStaticProps() {
+  return { props: {} };
+}
