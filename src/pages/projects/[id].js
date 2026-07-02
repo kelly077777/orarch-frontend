@@ -546,7 +546,7 @@ export function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = []
             style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer', flexShrink:0 }}>
             Download
           </button>
-          <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName)); else alert('No file attached yet.'); }}
+          <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName) + '&docId=' + doc.id + '&projectId=' + projectId); else alert('No file attached yet.'); }}
             style={{ background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'6px', padding:'6px 14px', fontSize:'12px', cursor:'pointer', flexShrink:0 }}>
             Open in viewer
           </button>
@@ -780,7 +780,7 @@ export function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = []
                 return (
                   <div key={i}>
                     {showHeader && <div style={{ textAlign:'center', fontSize:'11px', fontWeight:600, color:'#94A3B8', margin:'16px 0 12px' }}>{day}</div>}
-                    <div onClick={() => { const furl = v.fileUrl || v.filePath || doc.fileUrl; if (furl) router.push('/viewer?url=' + encodeURIComponent(furl) + '&title=' + encodeURIComponent((doc.title||doc.fileName) + ' - v' + v.versionNumber)); else alert('No file for this version.'); }}
+                    <div onClick={() => { const furl = v.fileUrl || v.filePath || doc.fileUrl; if (furl) router.push('/viewer?url=' + encodeURIComponent(furl) + '&title=' + encodeURIComponent((doc.title||doc.fileName) + ' - v' + v.versionNumber) + '&docId=' + doc.id + '&projectId=' + projectId); else alert('No file for this version.'); }}
                       style={{ display:'flex', alignItems:'center', gap:'16px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'12px 16px', marginBottom:'8px', cursor:'pointer', transition:'box-shadow 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow='0 2px 8px rgba(37,99,235,0.15)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow='none'}>
@@ -872,7 +872,7 @@ export function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = []
             {doc.fileUrl ? (
               doc.mimeType?.includes('image') ? (
                 <div style={{ position:'relative', maxWidth:'560px', width:'100%', background:'#fff', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', overflow:'hidden', cursor:'pointer' }}
-                  onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
+                  onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName) + '&docId=' + doc.id + '&projectId=' + projectId)}
                   onMouseEnter={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='1'; }}
                   onMouseLeave={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='0'; }}>
                   <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', display:'block' }} />
@@ -883,7 +883,7 @@ export function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = []
     ) : (
            doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
                   <div style={{ position:'relative', maxWidth:'560px', width:'100%', background:'#fff', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', overflow:'hidden', cursor:'pointer' }}
-                  onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
+                  onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName) + '&docId=' + doc.id + '&projectId=' + projectId)}
                   onMouseEnter={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='1'; }}
                   onMouseLeave={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='0'; }}>
                   <PdfPreview url={doc.fileUrl} />
@@ -895,7 +895,7 @@ export function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = []
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
                     <div style={{ fontSize:'64px' }}>📐</div>
                     <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B' }}>{doc.title || doc.fileName}</div>
-                    <button onClick={() =>router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
+                    <button onClick={() =>router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName) + '&docId=' + doc.id + '&projectId=' + projectId)}
                       style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'8px', padding:'10px 24px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
                       Open in Viewer ↗
                     </button>
@@ -906,7 +906,7 @@ export function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = []
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'12px' }}>
                 <div style={{ fontSize:'64px' }}>{doc.mimeType?.includes('pdf') ? '📄' : doc.mimeType?.includes('image') ? '🖼️' : '📐'}</div>
                 <div style={{ fontSize:'13px', color:'#94A3B8' }}>No file uploaded yet</div>
-                <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName)); }}
+                <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName) + '&docId=' + doc.id + '&projectId=' + projectId); }}
                   style={{ background:'rgba(0,0,0,0.5)', color:'#fff', border:'none', borderRadius:'20px', padding:'8px 20px', fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
                   👁 Open in viewer
                 </button>
@@ -1031,20 +1031,10 @@ export default function ProjectWorkspace() {
 
   const [project, setProject]           = useState(null);
   const [fileList, setFileList]         = useState([]);
-  // Sync document overlay with URL (?doc=<id>) — opens on click, closes on back
-  const didMountDoc = useRef(false);
+  // Sync document overlay with URL (?doc=<id>) — opens on click, deep-link, and back-from-viewer
   useEffect(() => {
     if (!router.isReady) return;  // wait until query is parsed
     const docId = router.query.doc;
-    // On first ready-mount, strip any stale ?doc= so login lands on the files list, not inside a doc
-    if (!didMountDoc.current) {
-      didMountDoc.current = true;
-      if (docId) {
-        router.replace('/projects/' + id, undefined, { shallow: true });
-        setSelectedDoc(null);
-        return;
-      }
-    }
     if (docId && fileList.length > 0) {
       const found = fileList.find(f => String(f.id) === String(docId));
       if (found) setSelectedDoc(found);

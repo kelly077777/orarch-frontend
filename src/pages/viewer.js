@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 
 export default function PDFViewer() {
   const router = useRouter();
-  const { url, title } = router.query;
+  const { url, title, docId, projectId } = router.query;
   const canvasRef = useRef();
   const containerRef = useRef();
   const [pdf, setPdf] = useState(null);
@@ -55,7 +55,7 @@ export default function PDFViewer() {
       
       {/* Toolbar */}
       <div style={{ background: '#3c3f41', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, borderBottom: '1px solid #222' }}>
-        <button onClick={() => router.back()}
+        <button onClick={() => { if (docId && projectId) router.push('/projects/' + projectId + '?doc=' + docId); else router.back(); }}
           style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '20px', padding: '0 4px' }}>
           ←
         </button>
