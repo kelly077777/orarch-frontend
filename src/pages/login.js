@@ -50,7 +50,7 @@ export default function LoginPage() {
               ORARCH <span style={{ color: '#2563EB' }}>24/7</span>
             </div>
             <div style={{ fontSize: '11px', color: '#94A3B8', letterSpacing: '1px' }}>
-              CONSTRUCTION DOCUMENT MANAGEMENT
+              Built for Construction
             </div>
           </div>
         </div>

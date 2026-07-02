@@ -360,10 +360,20 @@ function PdfPreview({ url }) {
     </div>
   );
 }
-function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
+export function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('Info');
   const [comments, setComments] = useState([]);
+  const [approvals, setApprovals] = useState([]);
+  const [selectedApproval, setSelectedApproval] = useState(0);
+  const [decisions, setDecisions] = useState([]);
+  const [attachments, setAttachments] = useState([]);
+  const [uploadingAtt, setUploadingAtt] = useState(false);
+  const [versions, setVersions] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [selectedHistory, setSelectedHistory] = useState(null);
   const [message, setMessage] = useState('');
+  const [selectedComm, setSelectedComm] = useState(0);
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
   const token = typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null;
 
@@ -381,6 +391,73 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
     } catch (err) { console.error(err); }
   };
 
+  useEffect(() => { if (doc && projectId) loadApprovals(); }, [doc, projectId]);
+  const loadApprovals = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/approvals?projectId=${projectId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      const mine = Array.isArray(data) ? data.filter(a => String(a.documentId) === String(doc.id)) : [];
+      setApprovals(mine);
+    } catch (err) { console.error(err); }
+  };
+  const loadDecisions = async (approvalId) => {
+    try {
+      const res = await fetch(`${BASE_URL}/approvals/${approvalId}/decisions`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setDecisions(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
+  };
+  useEffect(() => {
+    if (approvals[selectedApproval]) loadDecisions(approvals[selectedApproval].id);
+  }, [selectedApproval, approvals]);
+  useEffect(() => { if (doc) loadAttachments(); }, [doc]);
+  const loadAttachments = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/attachments?documentId=${doc.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setAttachments(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
+  };
+  const uploadAttachment = async (file) => {
+    if (!file) return;
+    setUploadingAtt(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('projectId', projectId);
+      const up = await fetch(`${BASE_URL}/files/upload`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }, body: fd });
+      const upData = await up.json();
+      await fetch(`${BASE_URL}/attachments`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body: JSON.stringify({ documentId: doc.id, fileName: upData.originalName, fileUrl: upData.url, publicId: upData.publicId, fileSize: upData.bytes, format: upData.format, uploadedByName: `${user.firstName} ${user.lastName}` })
+      });
+      loadAttachments();
+    } catch (err) { console.error(err); alert('Upload failed'); }
+    finally { setUploadingAtt(false); }
+  };
+  const deleteAttachment = async (attId) => {
+    try {
+      await fetch(`${BASE_URL}/attachments/${attId}`, { method:'DELETE', headers:{ Authorization:`Bearer ${token}` } });
+      loadAttachments();
+    } catch (err) { console.error(err); }
+  };
+  useEffect(() => { if (doc) loadVersions(); }, [doc]);
+  const loadVersions = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/documents/${doc.id}/versions`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setVersions(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
+  };
+  useEffect(() => { if (doc) loadHistory(); }, [doc]);
+  const loadHistory = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/audit/entity?entityType=DOCUMENT&entityId=${doc.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setHistory(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
+  };
   const sendComment = async () => {
     if (!message.trim()) return;
     try {
@@ -405,7 +482,55 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', top:0, left:'80px', right:0, bottom:0, background:'rgba(0,0,0,0.3)', zIndex:200 }} />
-     <div style={{ position:'fixed', top:0, left:'80px', right:0, height:'100vh', background:'#fff', zIndex:201, display:'flex', flexDirection:'column', boxShadow:'-4px 0 24px rgba(0,0,0,0.15)', animation:'slideIn 0.25s ease-out' }}>
+     <div style={{ position:'fixed', top:0, left:0, right:0, height:'100vh', background:'#fff', zIndex:201, display:'flex', flexDirection:'column', boxShadow:'-4px 0 24px rgba(0,0,0,0.15)', animation:'slideIn 0.25s ease-out' }}>
+        {/* Logo top bar (Bricsys-style) */}
+        <div style={{ height:'52px', minHeight:'52px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', padding:'0 20px', flexShrink:0 }}>
+          <div onClick={onClose} style={{ fontWeight:800, fontSize:'18px', color:'#2563EB', letterSpacing:'2px', cursor:'pointer' }}>
+            OR<span style={{ color:'#0EA5E9' }}>ARCH </span><span style={{ color:'#2563EB' }}>24/7</span>
+          </div>
+        </div>
+        {/* row: strip + content */}
+        <div style={{ flex:1, display:'flex', flexDirection:'row', overflow:'hidden' }}>
+        {/* 2-column badged strip (Bricsys) */}
+        <div style={{ width:'80px', minWidth:'80px', background:'#1E293B', display:'grid', gridTemplateColumns:'40px 40px', justifyContent:'center', paddingTop:'12px', gap:'2px', flexShrink:0, alignContent:'start' }}>
+          {[
+            // row1
+            { title:'Files', onClick: onClose, active:true, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+            { title:'Info', tab:'Info', onClick:()=>setActiveTab('Info'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 8v5M9 6v.5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+            // row2
+            { title:'Address Book', onClick:()=>router.push('/address-book'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+            { title:'Communication', tab:'Communication', onClick:()=>setActiveTab('Communication'), badge: comments.length, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+            // row3
+            { title:'Tasks', onClick:()=>router.push('/tasks'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 7h10M4 11h7M4 3h14" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+            { title:'Metadata', tab:'Metadata', onClick:()=>setActiveTab('Metadata'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2 7h14M7 7v8" stroke="#94A3B8" strokeWidth="1.4"/></svg> },
+            // row4
+            { title:'Messages', onClick:()=>router.push('/messages'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+            { title:'Workflows', tab:'Workflows', onClick:()=>setActiveTab('Workflows'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="#94A3B8" strokeWidth="1.4"/><circle cx="13" cy="13" r="2" stroke="#94A3B8" strokeWidth="1.4"/><path d="M7 5h4a2 2 0 012 2v4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+            // row5
+            { title:'Reports', onClick:()=>router.push('/reports'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 14V6l4 4 4-4 4 4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+            { title:'Attachments', tab:'Attachments', onClick:()=>setActiveTab('Attachments'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M12 5l-5 5a2 2 0 002.8 2.8L15 8a3.5 3.5 0 00-5-5l-5.5 5.5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+            // row6 (left empty spacer + Versions)
+            { title:'', onClick:()=>{}, spacer:true, icon:null },
+            { title:'Versions', tab:'Versions', onClick:()=>setActiveTab('Versions'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v5l3 2" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="9" r="7" stroke="#94A3B8" strokeWidth="1.4"/></svg> },
+            // row7 (left empty spacer + History)
+            { title:'', onClick:()=>{}, spacer:true, icon:null },
+            { title:'History', tab:'History', onClick:()=>setActiveTab('History'), icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 6h6M6 9h6M6 12h4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+          ].map((item, idx) => (
+            item.spacer ? (
+              <div key={'spacer'+idx} style={{ width:'38px', height:'38px' }} />
+            ) : (
+            <button key={item.title} title={item.title} onClick={item.onClick}
+              style={{ position:'relative', width:'38px', height:'38px', borderRadius:'8px', background: (item.active || item.tab === activeTab) ? 'rgba(255,255,255,0.15)' : 'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', justifySelf:'center' }}
+              onMouseEnter={e => { if (!item.active && item.tab !== activeTab) e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
+              onMouseLeave={e => { if (!item.active && item.tab !== activeTab) e.currentTarget.style.background='transparent'; }}>
+              {item.icon}
+              {item.badge > 0 && (<span style={{ position:'absolute', top:'2px', right:'2px', background:'#2563EB', color:'#fff', fontSize:'9px', fontWeight:700, minWidth:'14px', height:'14px', borderRadius:'7px', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px' }}>{item.badge}</span>)}
+            </button>
+            )
+          ))}
+        </div>
+        {/* content column */}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
         {/* Toolbar */}
         <div style={{ padding:'10px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', gap:'10px', background:'#fff' }}>
@@ -417,7 +542,7 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
             <button onClick={() => nextDoc && onClose(nextDoc)} disabled={!nextDoc}
               style={{ background:'none', border:'1px solid #E2E8F0', borderRadius:'4px', padding:'4px 8px', cursor: nextDoc ? 'pointer' : 'not-allowed', color: nextDoc ? '#475569' : '#CBD5E1', fontSize:'14px' }}>›</button>
           </div>
-          <button onClick={() => { if (doc.fileUrl) router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName)); else alert('No file attached yet.'); }}
+          <button onClick={async () => { if (!doc.fileUrl) { alert('No file attached yet.'); return; } try { const proxyUrl = `${BASE_URL}/files/proxy?url=` + encodeURIComponent(doc.publicId || doc.fileUrl); const r = await fetch(proxyUrl, { headers: { Authorization: `Bearer ${token}` } }); if (!r.ok) throw new Error('HTTP ' + r.status); const blob = await r.blob(); const objUrl = window.URL.createObjectURL(blob); const a = window.document.createElement('a'); a.href = objUrl; a.download = doc.fileName || doc.title || 'document'; window.document.body.appendChild(a); a.click(); window.document.body.removeChild(a); window.URL.revokeObjectURL(objUrl); } catch (err) { console.error(err); alert('Download failed: ' + err.message); } }}
             style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'6px 14px', fontSize:'12px', fontWeight:600, cursor:'pointer', flexShrink:0 }}>
             Download
           </button>
@@ -426,20 +551,346 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
             Open in viewer
           </button>
           <button style={{ background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'6px', padding:'6px 10px', fontSize:'14px', cursor:'pointer', flexShrink:0 }}>···</button>
-          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#94A3B8', flexShrink:0 }}>×</button>
+          <button onClick={() => onClose()} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#94A3B8', flexShrink:0 }}>×</button>
         </div>
 
         {/* Content */}
         <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
+          {/* Communication full view (Bricsys 2-panel) */}
+          {activeTab === 'Communication' ? (
+          <div style={{ flex:1, display:'flex', overflow:'hidden', background:'#fff' }}>
+            {/* left: communication list */}
+            <div style={{ width:'340px', borderRight:'1px solid #E2E8F0', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+              <div style={{ padding:'12px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', gap:'8px', alignItems:'center' }}>
+                <select style={{ flex:1, fontSize:'12px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 8px', color:'#475569', background:'#fff' }}>
+                  <option>ALL COMMUNICATIONS</option>
+                  <option>Comments</option>
+                  <option>Approvals</option>
+                </select>
+              </div>
+              <div style={{ flex:1, overflowY:'auto' }}>
+                {comments.length === 0 && <div style={{ padding:'20px', fontSize:'13px', color:'#94A3B8', textAlign:'center' }}>No communications yet</div>}
+                {comments.map((c, i) => {
+                  const initials = (c.authorName || 'U').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+                  const colors = ['#2563EB','#10B981','#F59E0B','#8B5CF6','#EC4899'];
+                  const color = colors[(c.authorName||'U').charCodeAt(0) % colors.length];
+                  const active = selectedComm === i;
+                  return (
+                    <div key={i} onClick={() => setSelectedComm(i)}
+                      style={{ display:'flex', gap:'10px', padding:'12px 16px', cursor:'pointer', borderBottom:'1px solid #F1F5F9', background: active ? '#EFF6FF' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}
+                      onMouseEnter={e => { if(!active) e.currentTarget.style.background='#F8FAFC'; }}
+                      onMouseLeave={e => { if(!active) e.currentTarget.style.background='transparent'; }}>
+                      <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, flexShrink:0 }}>{initials}</div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+                          <span style={{ fontSize:'13px', fontWeight:600, color:'#1E293B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.authorName || 'User'}</span>
+                          <span style={{ fontSize:'11px', color:'#94A3B8', flexShrink:0, marginLeft:'6px' }}>{c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : ''}</span>
+                        </div>
+                        <div style={{ fontSize:'12px', color:'#64748B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:'2px' }}>
+                          {c.subject ? <><span style={{ color:'#2563EB' }}>&#9095; </span>{c.subject}{c.status ? ' - ' + c.status : ''}</> : c.content}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* new message input */}
+              <div style={{ padding:'12px 16px', borderTop:'1px solid #E2E8F0', display:'flex', gap:'6px' }}>
+                <input value={message} onChange={e => setMessage(e.target.value)}
+                  onKeyDown={e => { if (e.key==='Enter') sendComment(); }}
+                  placeholder="Write a message..."
+                  style={{ flex:1, border:'1px solid #E2E8F0', borderRadius:'6px', padding:'7px 10px', fontSize:'12px', outline:'none' }} />
+                <button onClick={sendComment} style={{ background:'#2563EB', color:'#fff', border:'none', borderRadius:'6px', padding:'7px 12px', fontSize:'12px', cursor:'pointer' }}>Send</button>
+              </div>
+            </div>
+            {/* right: selected communication detail */}
+            <div style={{ flex:1, overflowY:'auto', padding:'24px 32px' }}>
+              {comments[selectedComm] ? (() => {
+                const c = comments[selectedComm];
+                const initials = (c.authorName || 'U').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+                const colors = ['#2563EB','#10B981','#F59E0B','#8B5CF6','#EC4899'];
+                const color = colors[(c.authorName||'U').charCodeAt(0) % colors.length];
+                return (
+                  <div>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'20px' }}>
+                      <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
+                        <div style={{ width:'40px', height:'40px', borderRadius:'50%', background:color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:700 }}>{initials}</div>
+                        <div>
+                          <div style={{ fontSize:'14px', fontWeight:600, color:'#1E293B' }}>{c.authorName || 'User'}</div>
+                          {c.subject && <div style={{ fontSize:'12px', color:'#64748B' }}><span style={{ color:'#2563EB' }}>&#9095; </span>{c.subject}{c.status ? ' - ' + c.status : ''}</div>}
+                        </div>
+                      </div>
+                      <span style={{ fontSize:'12px', color:'#94A3B8' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}</span>
+                    </div>
+                    <div style={{ fontSize:'14px', color:'#334155', lineHeight:1.6 }}>{c.content}</div>
+                  </div>
+                );
+              })() : (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#94A3B8', fontSize:'13px' }}>Select a communication to view</div>
+              )}
+            </div>
+          </div>
+          ) : activeTab === 'Metadata' ? (
+          /* Metadata full view (Bricsys) */
+          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'auto', background:'#fff' }}>
+            <div style={{ padding:'12px 0', display:'flex', justifyContent:'center', borderBottom:'1px solid #F1F5F9' }}>
+              <select style={{ fontSize:'12px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 24px 6px 10px', color:'#475569', background:'#fff' }}>
+                <option>C</option>
+              </select>
+            </div>
+            <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'16px' }}>
+              <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+                <path d="M8 14l4-4M60 14l4 4M12 58l-4 4M60 58l4-4" stroke="#BFDBFE" strokeWidth="2" strokeLinecap="round"/>
+                <rect x="24" y="20" width="28" height="34" rx="3" stroke="#2563EB" strokeWidth="2.5" fill="#EFF6FF"/>
+                <path d="M30 30h10M30 37h16M30 44h12" stroke="#2563EB" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="50" cy="48" r="9" fill="#fff" stroke="#2563EB" strokeWidth="2.5"/>
+                <path d="M50 44v8M46 48h8" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round"/>
+              </svg>
+              <div style={{ fontSize:'14px', fontWeight:600, color:'#64748B' }}>No metadata</div>
+            </div>
+          </div>
+          ) : activeTab === 'Workflows' ? (
+          /* Workflows full view (Bricsys 2-panel) */
+          <div style={{ flex:1, display:'flex', overflow:'hidden', background:'#fff' }}>
+            {/* left: workflow list */}
+            <div style={{ width:'320px', borderRight:'1px solid #E2E8F0', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+              <div style={{ padding:'12px 16px', borderBottom:'1px solid #E2E8F0' }}>
+                <select style={{ width:'100%', fontSize:'12px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 8px', color:'#475569', background:'#fff' }}>
+                  <option>ACTIVE AUTOMATIONS</option>
+                  <option>All</option>
+                  <option>Completed</option>
+                </select>
+              </div>
+              <div style={{ flex:1, overflowY:'auto' }}>
+                {approvals.length === 0 && <div style={{ padding:'20px', fontSize:'13px', color:'#94A3B8', textAlign:'center' }}>No workflows yet</div>}
+                {approvals.map((a, i) => {
+                  const active = selectedApproval === i;
+                  return (
+                    <div key={i} onClick={() => setSelectedApproval(i)}
+                      style={{ display:'flex', gap:'10px', padding:'12px 16px', cursor:'pointer', borderBottom:'1px solid #F1F5F9', background: active ? '#EFF6FF' : 'transparent', borderLeft: active ? '3px solid #2563EB' : '3px solid transparent' }}>
+                      <div style={{ width:'52px', height:'40px', background:'#F1F5F9', borderRadius:'4px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px' }}>&#128196;</div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:'12px', fontWeight:600, color:'#1E293B', lineHeight:1.3 }}>{a.title}</div>
+                        <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'3px' }}>Coordinator: {a.requestedByName || '\u2014'}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* right: workflow detail */}
+            <div style={{ flex:1, overflowY:'auto', padding:'24px 32px' }}>
+              {approvals[selectedApproval] ? (() => {
+                const a = approvals[selectedApproval];
+                const daysOpen = a.createdAt ? Math.max(0, Math.floor((Date.now() - new Date(a.createdAt)) / 86400000)) : 0;
+                const statusColors = { PENDING:'#F59E0B', APPROVED:'#10B981', REJECTED:'#EF4444', COMPLETED:'#10B981' };
+                const sc = statusColors[a.status] || '#F59E0B';
+                const colors = ['#2563EB','#10B981','#F59E0B','#8B5CF6','#EC4899'];
+                return (
+                  <div>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px' }}>
+                      <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                        <span style={{ fontSize:'18px' }}>&#128196;</span>
+                        <span style={{ fontSize:'15px', fontWeight:600, color:'#1E293B' }}>{a.description || a.title}</span>
+                      </div>
+                      <span style={{ fontSize:'12px', color:'#2563EB', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px', whiteSpace:'nowrap' }}>&#128337; View complete task history</span>
+                    </div>
+                    <div style={{ fontSize:'13px', color:'#475569', marginBottom:'8px' }}>
+                      <span style={{ fontWeight:600 }}>Assigned to:</span> {a.assignedToName || 'Reviewers'} <span style={{ color:'#94A3B8' }}>(The first who reacts)</span>
+                    </div>
+                    <div style={{ fontSize:'12px', color:'#94A3B8', marginBottom:'16px', display:'flex', alignItems:'center', gap:'4px' }}>&#128337; open for {daysOpen} day(s)</div>
+                    <div style={{ display:'inline-block', background:'#FEF3C7', color:'#B45309', fontSize:'11px', fontWeight:700, padding:'5px 12px', borderRadius:'4px', border:'1px solid #FDE68A', marginBottom:'20px' }}>
+                      {a.status === 'PENDING' ? 'NOT RESPONDED YET' : a.status}
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+                      {decisions.length === 0 && <div style={{ fontSize:'12px', color:'#94A3B8' }}>No responses yet</div>}
+                      {decisions.map((d, i) => {
+                        const name = d.decidedByName || 'Reviewer';
+                        const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+                        const color = colors[name.charCodeAt(0) % colors.length];
+                        return (
+                          <div key={i} style={{ display:'flex', gap:'10px', alignItems:'center' }}>
+                            <div style={{ width:'28px', height:'28px', borderRadius:'50%', background:color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700 }}>{initials}</div>
+                            <span style={{ fontSize:'13px', color:'#334155' }}>{name}</span>
+                            {d.decision && <span style={{ fontSize:'11px', color: d.decision==='APPROVED' ? '#10B981' : '#EF4444', fontWeight:600 }}>&#183; {d.decision}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#94A3B8', fontSize:'13px' }}>Select a workflow to view</div>
+              )}
+            </div>
+          </div>
+          ) : activeTab === 'Attachments' ? (
+          /* Attachments full view */
+          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'auto', background:'#fff' }}>
+            <div style={{ padding:'16px 24px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontSize:'15px', fontWeight:600, color:'#1E293B' }}>Attachments {attachments.length > 0 && `(${attachments.length})`}</span>
+              <label style={{ background:'#2563EB', color:'#fff', fontSize:'12px', fontWeight:600, padding:'8px 16px', borderRadius:'20px', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'6px' }}>
+                {uploadingAtt ? 'Uploading...' : '+ Add attachment'}
+                <input type="file" style={{ display:'none' }} disabled={uploadingAtt}
+                  onChange={e => { if (e.target.files[0]) uploadAttachment(e.target.files[0]); e.target.value=''; }} />
+              </label>
+            </div>
+            {attachments.length === 0 ? (
+              <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'14px' }}>
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M42 18L22 38a6 6 0 008.5 8.5L52 25a10 10 0 00-14-14L18 31" stroke="#BFDBFE" strokeWidth="3" strokeLinecap="round"/></svg>
+                <div style={{ fontSize:'14px', fontWeight:600, color:'#64748B' }}>No attachments</div>
+              </div>
+            ) : (
+              <div style={{ flex:1, overflowY:'auto', padding:'12px 24px' }}>
+                {attachments.map((att, i) => {
+                  const ext = (att.format || att.fileName?.split('.').pop() || '').toUpperCase();
+                  const sizeKb = att.fileSize ? (att.fileSize > 1048576 ? (att.fileSize/1048576).toFixed(1)+' MB' : Math.round(att.fileSize/1024)+' KB') : '';
+                  return (
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'12px', borderBottom:'1px solid #F1F5F9' }}>
+                      <div style={{ width:'40px', height:'40px', borderRadius:'6px', background:'#EFF6FF', color:'#2563EB', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'10px', fontWeight:700, flexShrink:0 }}>{ext || 'FILE'}</div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:'13px', fontWeight:600, color:'#1E293B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{att.fileName}</div>
+                        <div style={{ fontSize:'11px', color:'#94A3B8' }}>{sizeKb}{att.uploadedByName ? ' \u00b7 ' + att.uploadedByName : ''}{att.createdAt ? ' \u00b7 ' + new Date(att.createdAt).toLocaleDateString() : ''}</div>
+                      </div>
+                      <a href={att.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize:'12px', color:'#2563EB', textDecoration:'none', padding:'4px 8px' }}>Download</a>
+                      <button onClick={() => deleteAttachment(att.id)} style={{ background:'none', border:'none', color:'#EF4444', fontSize:'14px', cursor:'pointer', padding:'4px 8px' }}>&#215;</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          ) : activeTab === 'Versions' ? (
+          /* Versions timeline (Bricsys) */
+          <div style={{ flex:1, overflowY:'auto', background:'#fff', padding:'24px 40px' }}>
+            {(() => {
+              const rows = versions.length > 0 ? versions : [{ versionNumber: doc.currentVersion || '1.0', fileName: doc.fileName, uploadedByName: null, createdAt: doc.createdAt, _current:true }];
+              const fmtDay = (d) => {
+                if (!d) return 'UNKNOWN';
+                const date = new Date(d); const today = new Date(); const yest = new Date(); yest.setDate(today.getDate()-1);
+                if (date.toDateString() === today.toDateString()) return 'TODAY';
+                if (date.toDateString() === yest.toDateString()) return 'YESTERDAY';
+                return date.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+              };
+              let lastDay = null;
+              return rows.map((v, i) => {
+                const day = fmtDay(v.createdAt);
+                const showHeader = day !== lastDay; lastDay = day;
+                return (
+                  <div key={i}>
+                    {showHeader && <div style={{ textAlign:'center', fontSize:'11px', fontWeight:600, color:'#94A3B8', margin:'16px 0 12px' }}>{day}</div>}
+                    <div onClick={() => { const furl = v.fileUrl || v.filePath || doc.fileUrl; if (furl) router.push('/viewer?url=' + encodeURIComponent(furl) + '&title=' + encodeURIComponent((doc.title||doc.fileName) + ' - v' + v.versionNumber)); else alert('No file for this version.'); }}
+                      style={{ display:'flex', alignItems:'center', gap:'16px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'12px 16px', marginBottom:'8px', cursor:'pointer', transition:'box-shadow 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow='0 2px 8px rgba(37,99,235,0.15)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow='none'}>
+                      <div style={{ width:'44px', height:'52px', background:'#F1F5F9', borderRadius:'4px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>&#128196;</div>
+                      <span style={{ background:'#EFF6FF', color:'#2563EB', fontSize:'11px', fontWeight:700, padding:'4px 10px', borderRadius:'6px', border:'1px solid #BFDBFE', whiteSpace:'nowrap' }}>VERSION {v.versionNumber}</span>
+                      <span style={{ color:'#CBD5E1' }}>&#8212;</span>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <span style={{ fontSize:'13px', color:'#475569' }}>{v.changeSummary || v.fileName || ''}</span>
+                      </div>
+                      <span style={{ fontSize:'13px', color:'#334155', whiteSpace:'nowrap' }}>{v.uploadedByName || 'ORARCH user'}</span>
+                      <span style={{ fontSize:'12px', color:'#94A3B8', whiteSpace:'nowrap', minWidth:'150px', textAlign:'right' }}>{v.createdAt ? new Date(v.createdAt).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '\u2014'}</span>
+                      <span style={{ fontSize:'12px', color:'#64748B', whiteSpace:'nowrap', minWidth:'110px', textAlign:'right' }}>{doc.status || 'DRAFT'}</span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+          ) : activeTab === 'History' ? (
+          /* History table (Bricsys) */
+          <div style={{ flex:1, overflowY:'auto', background:'#fff' }}>
+            <div style={{ display:'flex', padding:'12px 24px', borderBottom:'1px solid #E2E8F0', fontSize:'11px', fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.5px' }}>
+              <div style={{ flex:2 }}>User</div>
+              <div style={{ flex:2 }}>Date &#8595;</div>
+              <div style={{ flex:1 }}>Version</div>
+              <div style={{ flex:2 }}>Action</div>
+            </div>
+            {(() => {
+              const rows = history.length > 0 ? history.map(h => ({
+                user: h.userName || 'ORARCH user',
+                date: h.createdAt,
+                version: (h.newValues && (()=>{ try { return JSON.parse(h.newValues).version; } catch { return null; } })()) || doc.currentVersion || '1.0',
+                action: h.action,
+                raw: h
+              })) : [
+                { user: 'ORARCH user', date: doc.createdAt, version: doc.currentVersion || '1.0', action: 'Document created' },
+                { user: 'ORARCH user', date: doc.updatedAt, version: doc.currentVersion || '1.0', action: `Status set to ${doc.status || 'DRAFT'}` },
+              ];
+              return rows.map((r, i) => (
+                <div key={i} onClick={() => setSelectedHistory(r)}
+                  style={{ display:'flex', padding:'14px 24px', borderBottom:'1px solid #F1F5F9', fontSize:'13px', color:'#334155', alignItems:'center', cursor:'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                  <div style={{ flex:2, display:'flex', alignItems:'center', gap:'8px' }}>
+                    <div style={{ width:'26px', height:'26px', borderRadius:'50%', background:'#2563EB', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'10px', fontWeight:700 }}>{(r.user||'U').slice(0,2).toUpperCase()}</div>
+                    {r.user}
+                  </div>
+                  <div style={{ flex:2, color:'#64748B' }}>{r.date ? new Date(r.date).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '\u2014'}</div>
+                  <div style={{ flex:1 }}><span style={{ background:'#EFF6FF', color:'#2563EB', fontSize:'11px', fontWeight:600, padding:'2px 8px', borderRadius:'4px' }}>{r.version}</span></div>
+                  <div style={{ flex:2, color:'#475569' }}>{r.action}</div>
+                </div>
+              ));
+            })()}
+            {selectedHistory && (
+              <div onClick={() => setSelectedHistory(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:'10px', width:'440px', maxWidth:'90%', maxHeight:'80vh', overflow:'auto', boxShadow:'0 10px 40px rgba(0,0,0,0.2)' }}>
+                  <div style={{ padding:'16px 20px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span style={{ fontSize:'15px', fontWeight:700, color:'#1E293B' }}>Activity detail</span>
+                    <button onClick={() => setSelectedHistory(null)} style={{ background:'none', border:'none', fontSize:'18px', color:'#94A3B8', cursor:'pointer' }}>&#215;</button>
+                  </div>
+                  <div style={{ padding:'20px' }}>
+                    <div style={{ fontSize:'15px', fontWeight:600, color:'#2563EB', marginBottom:'16px' }}>{selectedHistory.action}</div>
+                    {[
+                      { label:'User', value: selectedHistory.user },
+                      { label:'Date', value: selectedHistory.date ? new Date(selectedHistory.date).toLocaleString('en-GB', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '\u2014' },
+                      { label:'Version', value: selectedHistory.version },
+                    ].map((row, k) => (
+                      <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #F1F5F9' }}>
+                        <span style={{ fontSize:'13px', color:'#94A3B8' }}>{row.label}</span>
+                        <span style={{ fontSize:'13px', color:'#334155', fontWeight:500 }}>{row.value}</span>
+                      </div>
+                    ))}
+                    {selectedHistory.raw && (selectedHistory.raw.oldValues || selectedHistory.raw.newValues) && (
+                      <div style={{ marginTop:'16px' }}>
+                        <div style={{ fontSize:'12px', fontWeight:600, color:'#64748B', marginBottom:'8px' }}>Changes</div>
+                        {selectedHistory.raw.oldValues && <div style={{ fontSize:'12px', color:'#EF4444', background:'#FEF2F2', padding:'8px', borderRadius:'6px', marginBottom:'6px', wordBreak:'break-all' }}>Before: {selectedHistory.raw.oldValues}</div>}
+                        {selectedHistory.raw.newValues && <div style={{ fontSize:'12px', color:'#059669', background:'#F0FDF4', padding:'8px', borderRadius:'6px', wordBreak:'break-all' }}>After: {selectedHistory.raw.newValues}</div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          ) : (
+          <>
           {/* PDF Preview */}
-          <div style={{ flex:1, background:'#E2E8F0', overflow:'hidden', position:'relative' }}>
+          <div style={{ flex:1, background:'#E2E8F0', overflow:'auto', position:'relative', display:'flex', alignItems:'center', justifyContent:'center', padding:'32px' }}>
             {doc.fileUrl ? (
               doc.mimeType?.includes('image') ? (
-                <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', height:'100%', objectFit:'contain' }} />
+                <div style={{ position:'relative', maxWidth:'560px', width:'100%', background:'#fff', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', overflow:'hidden', cursor:'pointer' }}
+                  onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
+                  onMouseEnter={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='1'; }}
+                  onMouseLeave={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='0'; }}>
+                  <img src={doc.fileUrl} alt={doc.title} style={{ width:'100%', display:'block' }} />
+                  <div className="viewer-overlay" style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.2s' }}>
+                    <span style={{ background:'rgba(0,0,0,0.6)', color:'#fff', padding:'8px 18px', borderRadius:'20px', fontSize:'13px', display:'flex', alignItems:'center', gap:'6px' }}>👁 Open in viewer</span>
+                  </div>
+                </div>
     ) : (
            doc.mimeType?.includes('pdf') || doc.fileName?.toLowerCase().endsWith('.pdf') ? (
+                  <div style={{ position:'relative', maxWidth:'560px', width:'100%', background:'#fff', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', overflow:'hidden', cursor:'pointer' }}
+                  onClick={() => router.push('/viewer?url=' + encodeURIComponent(doc.fileUrl) + '&title=' + encodeURIComponent(doc.title || doc.fileName))}
+                  onMouseEnter={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='1'; }}
+                  onMouseLeave={e => { const o = e.currentTarget.querySelector('.viewer-overlay'); if(o) o.style.opacity='0'; }}>
                   <PdfPreview url={doc.fileUrl} />
+                  <div className="viewer-overlay" style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.2s', pointerEvents:'none' }}>
+                    <span style={{ background:'rgba(0,0,0,0.6)', color:'#fff', padding:'8px 18px', borderRadius:'20px', fontSize:'13px', display:'flex', alignItems:'center', gap:'6px' }}>👁 Open in viewer</span>
+                  </div>
+                </div>
                 ) : (
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:'16px' }}>
                     <div style={{ fontSize:'64px' }}>📐</div>
@@ -561,6 +1012,10 @@ function DocumentSlidePanel({ doc, projectId, onClose, user, allDocs = [] }) {
               )}
             </div>
           </div>
+          </>
+          )}
+        </div>
+        </div>
         </div>
       </div>
     </>
@@ -576,6 +1031,26 @@ export default function ProjectWorkspace() {
 
   const [project, setProject]           = useState(null);
   const [fileList, setFileList]         = useState([]);
+  // Sync document overlay with URL (?doc=<id>) — opens on click, closes on back
+  const didMountDoc = useRef(false);
+  useEffect(() => {
+    if (!router.isReady) return;  // wait until query is parsed
+    const docId = router.query.doc;
+    // On first ready-mount, strip any stale ?doc= so login lands on the files list, not inside a doc
+    if (!didMountDoc.current) {
+      didMountDoc.current = true;
+      if (docId) {
+        router.replace('/projects/' + id, undefined, { shallow: true });
+        setSelectedDoc(null);
+        return;
+      }
+    }
+    if (docId && fileList.length > 0) {
+      const found = fileList.find(f => String(f.id) === String(docId));
+      if (found) setSelectedDoc(found);
+    }
+    if (!docId) setSelectedDoc(null);
+  }, [router.isReady, router.query.doc, fileList]);
   const [activeFolder, setActiveFolder] = useState(null); // null = all / Recent files
   const [sortBy, setSortBy]             = useState('date');
   const [showAdvSearch, setShowAdvSearch] = useState(false);
@@ -599,6 +1074,9 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
   const [addingDocType, setAddingDocType]   = useState(false);
   const [newDocTypeName, setNewDocTypeName] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [navExpanded, setNavExpanded] = useState(false);
+  const [foldersPanelOpen, setFoldersPanelOpen] = useState(true);
+  const [folderMenu, setFolderMenu] = useState(null);
   const [navCollapsed, setNavCollapsed] = useState(false);
 
   useEffect(() => {
@@ -743,7 +1221,23 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
 
   return (
     <div style={{ fontFamily:'Arial,sans-serif', height:'100vh', display:'flex', flexDirection:'column', background:'#F8FAFC' }}>
-      <Topbar />
+      <Topbar projectName={project?.name} />
+      {/* Folder right-click context menu (ADMIN) */}
+      {folderMenu && (
+        <>
+          <div onClick={() => setFolderMenu(null)} onContextMenu={(e) => { e.preventDefault(); setFolderMenu(null); }}
+            style={{ position:'fixed', inset:0, zIndex:998 }} />
+          <div style={{ position:'fixed', top: folderMenu.y, left: folderMenu.x, background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.15)', zIndex:999, minWidth:'160px', overflow:'hidden', padding:'4px' }}>
+            <div style={{ padding:'6px 12px', fontSize:'11px', color:'#94A3B8', borderBottom:'1px solid #F1F5F9', marginBottom:'4px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{folderMenu.folder.name}</div>
+            <button onClick={() => { const f = folderMenu.folder; setFolderMenu(null); deleteFolder({ stopPropagation: () => {} }, f.id); }}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:'8px', padding:'8px 12px', background:'none', border:'none', borderRadius:'6px', cursor:'pointer', fontSize:'13px', color:'#EF4444', textAlign:'left' }}
+              onMouseEnter={e => e.currentTarget.style.background='#FEF2F2'}
+              onMouseLeave={e => e.currentTarget.style.background='none'}>
+              🗑 Delete folder
+            </button>
+          </div>
+        </>
+      )}
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
@@ -751,26 +1245,30 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         {/* ── NARROW DARK ICON STRIP ── */}
 
         
-<div style={{ width:'80px', background:'#1E293B', display:'grid', gridTemplateColumns:'1fr 1fr', alignContent:'start', flexShrink:0, paddingTop:'12px', gap:'2px' }}>
+<div style={{ width: navExpanded ? '200px' : '80px', background:'#1E293B', display:'flex', flexDirection:'column', alignItems: navExpanded ? 'stretch' : 'center', flexShrink:0, paddingTop:'8px', transition:'width 0.2s ease', overflow:'hidden' }}>
   {[
     { title:'Files', active:true, path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
-    { title:'Info', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 8v5M9 6v.5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
     { title:'Address Book', path:'/address-book', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
-    { title:'Grid', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="10" y="2" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="2" y="10" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="10" y="10" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/></svg> },
     { title:'Tasks', path:'/tasks', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 7h10M4 11h7M4 3h14" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
-    { title:'Bookmark', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 2h8a1 1 0 011 1v13l-4.5-3L5 16V3a1 1 0 011-1z" stroke="#94A3B8" strokeWidth="1.4" strokeLinejoin="round"/></svg> },
     { title:'Messages', path:'/messages', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
-    { title:'Settings', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="2.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.2 4.2l1.4 1.4M12.4 12.4l1.4 1.4M4.2 13.8l1.4-1.4M12.4 5.6l1.4-1.4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
     { title:'Reports', path:'/reports', icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 14V6l4 4 4-4 4 4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
-    { title:'Link', path:null, icon:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7.5 10.5a3.5 3.5 0 005 0l2-2a3.5 3.5 0 00-5-5L8 5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/><path d="M10.5 7.5a3.5 3.5 0 00-5 0l-2 2a3.5 3.5 0 005 5L10 13" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
   ].map(item => (
     <button key={item.title} title={item.title} onClick={() => item.path && router.push(item.path)}
-      style={{ width:'38px', height:'38px', borderRadius:'8px', background: item.active ? 'rgba(255,255,255,0.15)' : 'transparent', border:'none', cursor: item.path ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', margin:'1px auto' }}
+      style={{ width: navExpanded ? '90%' : '38px', height:'38px', borderRadius:'8px', background: item.active ? 'rgba(255,255,255,0.15)' : 'transparent', border:'none', cursor: item.path ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent: navExpanded ? 'flex-start' : 'center', gap:'12px', margin:'1px auto', padding: navExpanded ? '0 14px' : '0' }}
       onMouseEnter={e => { if (!item.active && item.path) e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
       onMouseLeave={e => { if (!item.active) e.currentTarget.style.background='transparent'; }}>
       {item.icon}
+      {navExpanded && <span style={{ color: item.active ? '#fff' : '#94A3B8', fontSize:'13px', fontWeight: item.active ? 600 : 400, whiteSpace:'nowrap' }}>{item.title}</span>}
     </button>
   ))}
+  {/* Collapse/Expand toggle at bottom (Bricsys-style) */}
+  <button onClick={() => setNavExpanded(v => !v)} title={navExpanded ? 'Collapse Menu' : 'Expand'}
+    style={{ marginTop:'auto', background:'none', border:'none', borderTop:'1px solid rgba(255,255,255,0.08)', cursor:'pointer', color:'#94A3B8', padding:'14px', display:'flex', alignItems:'center', justifyContent: navExpanded ? 'flex-start' : 'center', gap:'10px', fontSize:'13px' }}>
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+      <path d={navExpanded ? "M11 5l-4 4 4 4" : "M7 5l4 4-4 4"} stroke="#94A3B8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+    {navExpanded && <span>Collapse Menu</span>}
+  </button>
 </div>
 
   
@@ -790,58 +1288,48 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
           </div>
 
           {/* Toolbar */}
-          <div style={{ background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'8px 20px', display:'flex', alignItems:'center', gap:'8px' }}>
-            <button onClick={() => setShowUpload(true)}
-              style={{ padding:'7px 16px', borderRadius:'6px', border:'none', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
+          <div style={{ background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'10px 20px', display:'flex', alignItems:'center', gap:'8px' }}>
+            {/* Files title (left) - width matches folders panel */}
+            <div style={{ width:'260px', display:'flex', alignItems:'center', gap:'8px', flexShrink:0 }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="3" y="2" width="11" height="16" rx="1.5" stroke="#2563EB" strokeWidth="1.5"/>
+                <path d="M6 7h6M6 10h5" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span style={{ fontSize:'17px', fontWeight:700, color:'#1E293B' }}>Files</span>
+            </div>
+            {/* Upload (left of content area, like Bricsys) */}
+            <div style={{ flex:1, display:'flex', justifyContent:'flex-start' }}>
+              <button onClick={() => setShowUpload(true)}
+              style={{ padding:'8px 20px', borderRadius:'20px', border:'none', background:'#2563EB', color:'#fff', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 8px rgba(37,99,235,0.3)' }}>
               + Upload
             </button>
+            </div>
            
-            <button onClick={() => setAddingFolder(true)} style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>New folder</button>
-            <div style={{ position:'relative' }}>
-  <button onClick={() => setShowToolbarMenu(m => !m)}
-    style={{ padding:'6px 14px', borderRadius:'6px', border:'1px solid #E2E8F0', background:'#fff', fontSize:'12px', color:'#475569', cursor:'pointer' }}>
-    ···
-  </button>
-  {showToolbarMenu && (
-    <div style={{ position:'absolute', top:'32px', left:0, background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', zIndex:50, minWidth:'200px', overflow:'hidden' }}>
-      {[
-        { label:'Export to .xls', icon:'📊', action: () => {
-          const rows = displayFiles.map(f => `${f.title||f.fileName}\t${f.documentType||''}\t${f.status||''}\t${f.currentVersion||'1.0'}`);
-          const content = ['Name\tType\tStatus\tVersion', ...rows].join('\n');
-          const blob = new Blob([content], { type:'application/vnd.ms-excel' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href=url; a.download='documents.xls'; a.click();
-          URL.revokeObjectURL(url);
-          setShowToolbarMenu(false);
-        }},
-        { label:'Folder notifications', icon:'🔔', action: () => { alert('Folder notifications enabled!'); setShowToolbarMenu(false); }},
-      ].map(item => (
-        <button key={item.label} onClick={item.action}
-          style={{ width:'100%', padding:'10px 16px', border:'none', background:'#fff', textAlign:'left', fontSize:'13px', color:'#1E293B', cursor:'pointer', display:'flex', alignItems:'center', gap:'10px' }}
-          onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'}
-          onMouseLeave={e => e.currentTarget.style.background='#fff'}>
-          {item.icon} {item.label}
-        </button>
-      ))}
-    </div>
-  )}
-</div>
+            
            
-            <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'8px' }}>
-              <span style={{ fontSize:'12px', color:'#94A3B8' }}>Sort:</span>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                style={{ fontSize:'12px', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'4px 8px', color:'#475569', background:'#fff' }}>
-                <option value="date">Date modified</option>
-                <option value="name">Name</option>
-                <option value="revision">Revision</option>
-              </select>
+            {/* panel toggle (right) - matches Bricsys */}
+            <div style={{ width:'160px', display:'flex', justifyContent:'flex-end', flexShrink:0 }}>
+              <button onClick={() => setFoldersPanelOpen(v => !v)} title={foldersPanelOpen ? 'Hide folders panel' : 'Show folders panel'}
+                style={{ background:'none', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px', cursor:'pointer', display:'flex', alignItems:'center' }}>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <rect x="2" y="3" width="14" height="12" rx="1.5" stroke="#64748B" strokeWidth="1.4"/>
+                  <path d="M7 3v12" stroke="#64748B" strokeWidth="1.4"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
             {/* ── FOLDERS PANEL ── */}
-            <div style={{ width:'260px', borderRight:'1px solid #E2E8F0', background:'#fff', overflowY:'auto', flexShrink:0 }}>
+            <div style={{ width: foldersPanelOpen ? '260px' : '0px', borderRight: foldersPanelOpen ? '1px solid #E2E8F0' : 'none', background:'#fff', overflowY:'auto', flexShrink:0, transition:'width 0.2s ease' }}>
              <div style={{ padding:'12px 16px', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <span style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.06em' }}>Folders</span>
+                <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                <button onClick={() => setAddingFolder(true)} title="New folder"
+                  style={{ background:'none', border:'none', cursor:'pointer', color:'#2563EB', display:'flex', alignItems:'center', padding:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 3v10M3 8h10" stroke="#2563EB" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                </button>
                 <div style={{ position:'relative' }}>
                   <button onClick={() => setShowFolderFilter(f => !f)} style={{ background:'none', border:'none', cursor:'pointer', color: showFolderFilter ? '#2563EB' : '#94A3B8', display:'flex', alignItems:'center' }} title="Filter folders">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -862,6 +1350,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
                     </div>
                   )}
                 </div>
+                </div>
               </div> 
 
               <div onClick={() => setActiveFolder(null)}
@@ -881,6 +1370,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
                 return (
                   <div key={f.id}>
                     <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 16px', cursor:'pointer', background: isActive ? '#EFF6FF' : 'transparent', borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent' }}
+                      onContextMenu={(e) => { if (user?.role === 'ADMIN') { e.preventDefault(); setFolderMenu({ x: e.clientX, y: e.clientY, folder: f }); } }}
                       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background='#F8FAFC'; }}
                       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background='transparent'; }}>
                       <button onClick={() => setExpandedFolders(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
@@ -970,7 +1460,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
                             <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                               <span style={{ background: typeColors[fType]||'#F1F5F9', color: typeText[fType]||'#475569', fontSize:'10px', fontWeight:700, padding:'2px 6px', borderRadius:'4px', minWidth:'36px', textAlign:'center' }}>{fType}</span>
                               <div>
-                                <div onClick={() => setSelectedDoc(f)} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
+                                <div onClick={() => { setSelectedDoc(f); router.push('/projects/' + id + '?doc=' + f.id, undefined, { shallow: true }); }} style={{ fontWeight:600, color:'#2563EB', fontSize:'13px', cursor:'pointer' }}>{f.title || f.fileName}</div>
                                 <div style={{ fontSize:'11px', color:'#94A3B8' }}>{f.documentType}</div>
                               </div>
                             </div>
@@ -1080,7 +1570,7 @@ const [advSearch, setAdvSearch] = useState({ title: '', status: '', extension: '
         <ApprovalModal document={showApproval} projectId={id} onClose={() => setShowApproval(null)} onSent={loadDocuments} />
       )}
       {showAdvSearch && <AdvancedSearchModal onClose={() => setShowAdvSearch(false)} onSearch={s => setAdvSearch(s)} folderList={folderList} />}
-       {selectedDoc && <DocumentSlidePanel doc={selectedDoc} projectId={id} onClose={(newDoc) => newDoc ? setSelectedDoc(newDoc) : setSelectedDoc(null)} user={user} allDocs={fileList} />}
+       {selectedDoc && <DocumentSlidePanel doc={selectedDoc} projectId={id} onClose={(newDoc) => { if (newDoc) { setSelectedDoc(newDoc); router.push('/projects/' + id + '?doc=' + newDoc.id, undefined, { shallow: true }); } else { setSelectedDoc(null); router.push('/projects/' + id, undefined, { shallow: true }); } }} user={user} allDocs={fileList} />}
     </div>
   );
 }

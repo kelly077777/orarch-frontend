@@ -2,21 +2,21 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { folders as foldersApi } from '../lib/api';
 
+const ico = (d) => <svg width="16" height="16" viewBox="0 0 18 18" fill="none">{d}</svg>;
 const menuItems = [
-  { label: 'Files', path: '/', icon: '📁' },
-  { label: 'Projects', path: '/projects', icon: '🏗️' },
-  { label: 'Approvals', path: '/approvals', icon: '✅' },
-  { label: 'Team', path: '/team', icon: '👥' },
-  { label: 'Address Book', path: '/address-book', icon: '📒' },
-  { label: 'Tasks', path: '/tasks', icon: '📋' },
-  { label: 'Messages', path: '/messages', icon: '💬' },
-  { label: 'Reports', path: '/reports', icon: '📊' },
+  { label: 'Projects', path: '/projects', icon: <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3" y="3" width="12" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M3 7h12" stroke="currentColor" strokeWidth="1.4"/></svg> },
+  { label: 'Approvals', path: '/approvals', icon: <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9l3 3 7-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+  { label: 'Team', path: '/team', icon: <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2.5 15a4.5 4.5 0 019 0" stroke="currentColor" strokeWidth="1.4"/><path d="M12 4a2.5 2.5 0 010 5" stroke="currentColor" strokeWidth="1.4"/></svg> },
+  { label: 'Address Book', path: '/address-book', icon: <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="4" y="2" width="10" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><circle cx="9" cy="7" r="1.8" stroke="currentColor" strokeWidth="1.4"/><path d="M6.5 13a2.5 2.5 0 015 0" stroke="currentColor" strokeWidth="1.4"/></svg> },
+  { label: 'Tasks', path: '/tasks', icon: <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="4" y="3" width="10" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M6 7l1.5 1.5L10 6M6 12h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+  { label: 'Messages', path: '/messages', icon: <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+  { label: 'Reports', path: '/reports', icon: <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M3 15V3M3 15h12M6 12V8M9 12V5M12 12v-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg> },
 ];
 
 export default function Sidebar({ activeFolder, onFolderClick, projectId, organizationId }) {
   const router = useRouter();
   const currentPath = router.pathname;
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [folderList, setFolderList] = useState([]);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -47,13 +47,8 @@ export default function Sidebar({ activeFolder, onFolderClick, projectId, organi
   };
 
   return (
-    <aside style={{ width: collapsed ? '48px' : '220px', background: '#fff', borderRight: '1px solid #E2E8F0', flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'width 0.2s ease', overflow: 'hidden' }}>
+    <aside style={{ width: collapsed ? '56px' : '220px', background: '#1E293B', borderRight: '1px solid #0F172A', flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'width 0.2s ease', overflow: 'hidden' }}>
       
-      {/* Toggle button */}
-      <div onClick={() => setCollapsed(c => !c)}
-        style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-end', cursor: 'pointer', borderBottom: '1px solid #F1F5F9' }}>
-        <span style={{ fontSize: '14px', color: '#94A3B8' }}>{collapsed ? '›' : '‹'}</span>
-      </div>
 
       {/* Menu items */}
       {!collapsed && (
@@ -63,17 +58,17 @@ export default function Sidebar({ activeFolder, onFolderClick, projectId, organi
         const isActive = currentPath === item.path;
         return (
           <div key={item.label} onClick={() => router.push(item.path)} title={item.label}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: collapsed ? '10px 0' : '8px 14px', justifyContent: collapsed ? 'center' : 'flex-start', fontSize: '12px', cursor: 'pointer', borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent', background: isActive ? '#EFF6FF' : 'transparent', color: isActive ? '#2563EB' : '#475569', fontWeight: isActive ? 600 : 400 }}
-            onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F8FAFC'; }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: collapsed ? '10px 0' : '9px 16px', justifyContent: collapsed ? 'center' : 'flex-start', fontSize: '13px', cursor: 'pointer', borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent', background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent', color: isActive ? '#fff' : '#94A3B8', fontWeight: isActive ? 600 : 400 }}
+            onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
             onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
-            <span style={{ fontSize: '16px', flexShrink: 0 }}>{item.icon}</span>
+            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{item.icon}</span>
             {!collapsed && <span>{item.label}</span>}
           </div>
         );
       })}
 
       {/* Folders section */}
-      {!collapsed && (
+      {!collapsed && projectId && (
         <>
           <div style={{ padding: '16px 14px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Folders</span>
@@ -98,11 +93,11 @@ export default function Sidebar({ activeFolder, onFolderClick, projectId, organi
             </div>
           )}
           {folderList.length === 0 && !adding && projectId && (
-            <div style={{ padding: '6px 14px', fontSize: '11px', color: '#CBD5E1' }}>No folders yet</div>
+            <div style={{ padding: '6px 16px', fontSize: '11px', color: '#64748B' }}>No folders yet</div>
           )}
           {folderList.map((f) => (
             <div key={f.id} onClick={() => onFolderClick && onFolderClick(f.name)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', fontSize: '12px', cursor: 'pointer', background: activeFolder === f.name ? '#F0F9FF' : 'transparent', color: activeFolder === f.name ? '#0EA5E9' : '#475569', fontWeight: activeFolder === f.name ? 600 : 400 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 16px', fontSize: '13px', cursor: 'pointer', background: activeFolder === f.name ? 'rgba(255,255,255,0.12)' : 'transparent', color: activeFolder === f.name ? '#fff' : '#94A3B8', fontWeight: activeFolder === f.name ? 600 : 400 }}
               onMouseEnter={e => e.currentTarget.querySelector('.del-btn').style.opacity = '1'}
               onMouseLeave={e => e.currentTarget.querySelector('.del-btn').style.opacity = '0'}>
               <span>{f.name}</span>
@@ -113,13 +108,11 @@ export default function Sidebar({ activeFolder, onFolderClick, projectId, organi
         </>
       )}
 
-      {/* Collapse button at bottom */}
-      {!collapsed && (
-        <div onClick={() => setCollapsed(true)}
-          style={{ marginTop: 'auto', padding: '12px 14px', fontSize: '12px', color: '#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', borderTop: '1px solid #F1F5F9' }}>
-          ‹ Collapse Menu
-        </div>
-      )}
+      {/* Collapse/expand button at bottom */}
+      <div onClick={() => setCollapsed(c => !c)}
+        style={{ marginTop: 'auto', padding: '12px 16px', fontSize: '12px', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        {collapsed ? '›' : '‹ Collapse Menu'}
+      </div>
     </aside>
   );
 }

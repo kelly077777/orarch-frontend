@@ -31,7 +31,7 @@ export default function RegisterPage() {
           <div style={{ fontWeight: 800, fontSize: '26px', letterSpacing: '3px', color: '#2563EB' }}>
             OR<span style={{ color: '#0EA5E9' }}>ARCH</span><span style={{ color: '#2563EB' }}>247</span>
           </div>
-          <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>Construction Document Management</div>
+          <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>Built for Construction</div>
           <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E293B', marginTop: '12px' }}>Create your account</div>
         </div>
 

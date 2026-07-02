@@ -262,6 +262,8 @@ export default function DocumentDetailPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [allDocs, setAllDocs] = useState([]);
+  const [versionsCount, setVersionsCount] = useState(0);
+  const [approvalsCount, setApprovalsCount] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareLink, setShowShareLink] = useState(false);
 
@@ -271,14 +273,18 @@ export default function DocumentDetailPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [docData, commentsData, allDocsData] = await Promise.all([
+      const [docData, commentsData, allDocsData, versionsData, approvalsData] = await Promise.all([
         apiFetch(`/documents/${id}`),
         apiFetch(`/comments?documentId=${id}`).catch(() => []),
         projectId ? apiFetch(`/documents?projectId=${projectId}`) : Promise.resolve([]),
+        apiFetch(`/documents/${id}/versions`).catch(() => []),
+        projectId ? apiFetch(`/approvals?projectId=${projectId}`).catch(() => []) : Promise.resolve([]),
       ]);
       setDoc(docData);
       setComments(Array.isArray(commentsData) ? commentsData : []);
       setAllDocs(Array.isArray(allDocsData) ? allDocsData : []);
+      setVersionsCount(Array.isArray(versionsData) ? versionsData.length : 0);
+      setApprovalsCount(Array.isArray(approvalsData) ? approvalsData.filter(a => a.documentId === id).length : 0);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -320,31 +326,34 @@ export default function DocumentDetailPage() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* Icon sidebar - 2 column Bricsys style */}
-<div style={{ width: '80px', background: '#1E293B', display: 'grid', gridTemplateColumns: '1fr 1fr', paddingTop: '12px', gap: '2px', flexShrink: 0, alignContent: 'start' }}>
+<div style={{ width: '84px', minWidth: '84px', background: '#1E293B', border: '3px solid red', display: 'grid', gridTemplateColumns: '40px 40px', justifyContent: 'center', paddingTop: '12px', gap: '2px', flexShrink: 0, alignContent: 'start' }}>
   {[
-    // Left column - primary nav
-    { title: 'Files', path: `/projects/${projectId}`, active: true, col: 1, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
-    // Right column - secondary
-    { title: 'Info', path: null, col: 2, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 8v5M9 6v.5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    // Left column - primary nav (route away)
+    { title: 'Files', onClick: () => router.push(`/projects/${projectId}`), active: true, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    // Right column - document actions (open tabs, with counts)
+    { title: 'Info', onClick: () => setActiveTab('Info'), icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 8v5M9 6v.5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
 
-    { title: 'Address Book', path: '/address-book', col: 1, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
-    { title: 'Grid View', path: null, col: 2, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="10" y="2" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="2" y="10" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/><rect x="10" y="10" width="6" height="6" rx="1" stroke="#94A3B8" strokeWidth="1.4"/></svg> },
+    { title: 'Address Book', onClick: () => router.push('/address-book'), icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M2.5 16a6.5 6.5 0 0113 0" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title: 'Comments', onClick: () => setActiveTab('Communication'), badge: comments.length, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
 
-    { title: 'Tasks', path: '/tasks', col: 1, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 7h10M4 11h7M4 3h14" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
-    { title: 'Bookmark', path: null, col: 2, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 2h8a1 1 0 011 1v13l-4.5-3L5 16V3a1 1 0 011-1z" stroke="#94A3B8" strokeWidth="1.4" strokeLinejoin="round"/></svg> },
+    { title: 'Tasks', onClick: () => router.push('/tasks'), icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 7h10M4 11h7M4 3h14" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title: 'Versions', onClick: () => setActiveTab('Versions'), badge: versionsCount, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v5l3 2" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="9" r="7" stroke="#94A3B8" strokeWidth="1.4"/></svg> },
 
-    { title: 'Messages', path: '/messages', col: 1, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
-    { title: 'Settings', path: null, col: 2, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="2.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.2 4.2l1.4 1.4M12.4 12.4l1.4 1.4M4.2 13.8l1.4-1.4M12.4 5.6l1.4-1.4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title: 'Messages', onClick: () => router.push('/messages'), icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="1.5" stroke="#94A3B8" strokeWidth="1.4"/><path d="M6 13l3 3 3-3" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { title: 'Attachments', onClick: () => setActiveTab('Attachments'), icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M12 5l-5 5a2 2 0 002.8 2.8L15 8a3.5 3.5 0 00-5-5l-5.5 5.5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
 
-    { title: 'Reports', path: '/reports', col: 1, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 14V6l4 4 4-4 4 4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
-    { title: 'Link', path: null, col: 2, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7.5 10.5a3.5 3.5 0 005 0l2-2a3.5 3.5 0 00-5-5L8 5" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/><path d="M10.5 7.5a3.5 3.5 0 00-5 0l-2 2a3.5 3.5 0 005 5L10 13" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
+    { title: 'Reports', onClick: () => router.push('/reports'), icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 14V6l4 4 4-4 4 4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { title: 'Workflows', onClick: () => setActiveTab('Workflows'), badge: approvalsCount, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="#94A3B8" strokeWidth="1.4"/><circle cx="13" cy="13" r="2" stroke="#94A3B8" strokeWidth="1.4"/><path d="M7 5h4a2 2 0 012 2v4" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round"/></svg> },
   ].map(item => (
     <button key={item.title} title={item.title}
-      onClick={() => item.path && router.push(item.path)}
-      style={{ width: '38px', height: '38px', borderRadius: '8px', background: item.active ? 'rgba(255,255,255,0.15)' : 'transparent', border: 'none', cursor: item.path ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '1px auto' }}
-      onMouseEnter={e => { if (!item.active && item.path) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+      onClick={item.onClick}
+      style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '8px', background: item.active ? 'rgba(255,255,255,0.15)' : 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', justifySelf: 'center' }}
+      onMouseEnter={e => { if (!item.active) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
       onMouseLeave={e => { if (!item.active) e.currentTarget.style.background = 'transparent'; }}>
       {item.icon}
+      {item.badge > 0 && (
+        <span style={{ position: 'absolute', top: '2px', right: '2px', background: '#2563EB', color: '#fff', fontSize: '9px', fontWeight: 700, minWidth: '14px', height: '14px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>{item.badge}</span>
+      )}
     </button>
   ))}
 </div>
@@ -442,6 +451,43 @@ export default function DocumentDetailPage() {
 
           {/* Side Panel */}
           <div style={{ width: '320px', background: '#fff', borderLeft: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Bricsys-style info block (always visible) */}
+            {doc && (
+              <div style={{ padding: '16px', borderBottom: '1px solid #E2E8F0', overflowY: 'auto', flexShrink: 0, maxHeight: '55%' }}>
+                {[
+                  { label: 'Uploaded by', value: doc.uploadedBy ? doc.uploadedBy.toString().slice(0,10) : '—' },
+                  { label: 'Locked by', value: '-' },
+                  { label: 'Version', value: `v${doc.currentVersion || '1.0'}`, badge: true },
+                  { label: 'Upload date', value: formatDate(doc.createdAt) },
+                  { label: 'Size', value: formatSize(doc.fileSize) },
+                  { label: 'Extension', value: (doc.fileName || '').includes('.') ? '.' + doc.fileName.split('.').pop() : '—' },
+                  { label: 'Location', value: doc.documentType || '—' },
+                  { label: 'Status', value: doc.status || '—' },
+                ].map(item => (
+                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #F8FAFC' }}>
+                    <span style={{ fontSize: '12px', color: '#94A3B8' }}>{item.label}</span>
+                    {item.badge ? (
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '2px 8px', borderRadius: '5px' }}>{item.value}</span>
+                    ) : (
+                      <span style={{ fontSize: '12px', color: '#1E293B', fontWeight: 500, textAlign: 'right', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</span>
+                    )}
+                  </div>
+                ))}
+                {/* clickable summary rows */}
+                <div onClick={() => setActiveTab('Communication')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 0', cursor: 'pointer', borderBottom: '1px solid #F8FAFC' }}>
+                  <span style={{ fontSize: '13px' }}>💬</span>
+                  <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 600 }}>{comments.length} Messages</span>
+                </div>
+                <div onClick={() => setActiveTab('Attachments')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 0', cursor: 'pointer', borderBottom: '1px solid #F8FAFC' }}>
+                  <span style={{ fontSize: '13px' }}>📎</span>
+                  <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 600 }}>Attachments</span>
+                </div>
+                <div onClick={() => setActiveTab('Versions')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 0', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '13px' }}>🕐</span>
+                  <span style={{ fontSize: '12px', color: '#2563EB', fontWeight: 600 }}>Versions</span>
+                </div>
+              </div>
+            )}
             {/* Tabs + ••• menu */}
             <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid #E2E8F0', padding: '0 8px', alignItems: 'center' }}>
               {tabs.map(t => (

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
-export default function Topbar({ hideSearch = false }) {
+export default function Topbar({ hideSearch = false, projectSearch = null, onProjectSearch = null, projectName = null }) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [query, setQuery] = useState('');
@@ -48,6 +48,21 @@ export default function Topbar({ hideSearch = false }) {
       <div style={{ fontWeight:800, fontSize:'18px', color:'#2563EB', letterSpacing:'2px', cursor:'pointer' }} onClick={() => router.push('/')}>
         OR<span style={{ color:'#0EA5E9' }}>ARCH </span><span style={{ color:'#2563EB' }}>24/7</span>
       </div>
+      {/* Center project selector (Bricsys-style) */}
+      {projectName && (
+        <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', cursor:'pointer', padding:'4px 10px', borderRadius:'8px' }}
+            onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'}
+            onMouseLeave={e => e.currentTarget.style.background='transparent'}
+            onClick={() => router.push('/projects')} title="Switch project">
+            <div style={{ width:'28px', height:'28px', borderRadius:'50%', background:'#F59E0B', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, flexShrink:0 }}>
+              {projectName.charAt(0).toUpperCase()}
+            </div>
+            <span style={{ fontSize:'14px', fontWeight:600, color:'#1E293B', maxWidth:'320px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{projectName}</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3.5 5.5L7 9l3.5-3.5" stroke="#64748B" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+        </div>
+      )}
       <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'12px' }}>
         {!hideSearch && (
           <div ref={searchRef} style={{ position:'relative' }}>
@@ -56,7 +71,7 @@ export default function Topbar({ hideSearch = false }) {
               onChange={e => setQuery(e.target.value)}
               onFocus={() => query && setShowResults(true)}
               placeholder="Search documents..."
-              style={{ border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 12px', fontSize:'13px', width:'220px', outline:'none' }}
+              style={{ border:'1px solid #E2E8F0', borderRadius:'20px', padding:'7px 16px', fontSize:'13px', width:'240px', outline:'none' }}
             />
             {showResults && results.length > 0 && (
               <div style={{ position:'absolute', top:'36px', left:0, width:'320px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', boxShadow:'0 4px 20px rgba(0,0,0,0.12)', zIndex:100, overflow:'hidden' }}>
@@ -85,7 +100,6 @@ export default function Topbar({ hideSearch = false }) {
             )}
           </div>
         )}
-        <div style={{ fontSize:'12px', color:'#64748B' }}>{user?.firstName} {user?.lastName}</div>
         <div title="Logout" onClick={logout}
           style={{ width:'32px', height:'32px', borderRadius:'50%', background:'#2563EB', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, cursor:'pointer' }}>
           {initials}
