@@ -14,16 +14,27 @@ export default function PDFViewer() {
 
   useEffect(() => {
     if (!url) return;
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null;
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    script.onload = () => {
+    script.onload = async () => {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      window.pdfjsLib.getDocument(url).promise.then(pdfDoc => {
+      try {
+        // Fetch the PDF bytes through the authenticated proxy (avoids CORS + signature issues)
+        const proxyUrl = `${BASE_URL}/files/proxy?url=` + encodeURIComponent(url);
+        const resp = await fetch(proxyUrl, { headers: { Authorization: `Bearer ${token}` } });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const buf = await resp.arrayBuffer();
+        const pdfDoc = await window.pdfjsLib.getDocument({ data: buf }).promise;
         setPdf(pdfDoc);
         setTotalPages(pdfDoc.numPages);
         setLoading(false);
-      }).catch(() => setLoading(false));
+      } catch (e) {
+        console.error('PDF load failed:', e);
+        setLoading(false);
+      }
     };
     document.body.appendChild(script);
   }, [url]);
