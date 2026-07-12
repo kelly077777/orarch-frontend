@@ -21,6 +21,22 @@ export default function PDFViewer() {
   const [calibPrompt, setCalibPrompt] = useState(null); // {px, p1, p2} when awaiting input
   const [calibInput, setCalibInput] = useState('');
 
+  // Load saved calibration for this document, if any
+  useEffect(() => {
+    if (!docId) return;
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null;
+    fetch(`${BASE_URL}/documents/${docId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(doc => {
+        if (doc && doc.unitsPerPx) {
+          setUnitsPerPx(doc.unitsPerPx);
+          if (doc.calibrationUnit) setUnit(doc.calibrationUnit);
+        }
+      })
+      .catch(e => console.error('Failed to load calibration:', e));
+  }, [docId]);
+
   useEffect(() => {
     if (!url) return;
     const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -102,15 +118,29 @@ export default function PDFViewer() {
 
   const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 
-  const applyCalibration = () => {
+  const applyCalibration = async () => {
     const real = parseFloat(calibInput);
     if (isNaN(real) || real <= 0 || !calibPrompt || calibPrompt.px <= 0) {
       alert('Please enter a valid number.');
       return;
     }
-    setUnitsPerPx(real / calibPrompt.px);
+    const perPx = real / calibPrompt.px;
+    setUnitsPerPx(perPx);
     setCalibPrompt(null);
     setMode('measure');   // jump straight into measuring
+
+    // Save calibration to the document so it persists across sessions
+    try {
+      const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+      const token = localStorage.getItem('orarch_token');
+      await fetch(`${BASE_URL}/documents/${docId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ unitsPerPx: perPx, calibrationUnit: unit })
+      });
+    } catch (e) {
+      console.error('Failed to save calibration:', e);
+    }
   };
 
   const handleOverlayClick = (e) => {
@@ -152,7 +182,7 @@ export default function PDFViewer() {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#525659', fontFamily: 'Arial, sans-serif' }}>
       
       {/* Toolbar */}
-      <div style={{ background: '#3c3f41', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, borderBottom: '1px solid #222' }}>
+      <div style={{ background: '#3c3f41', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, borderBottom: '1px solid #222', position: 'relative' }}>
         <button onClick={() => { if (docId && projectId) router.push('/projects/' + projectId + '?doc=' + docId); else router.back(); }}
           style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '20px', padding: '0 4px' }}>
           ←
@@ -207,6 +237,11 @@ export default function PDFViewer() {
             {unitsPerPx ? 'Scale set' : 'Not calibrated'}
           </span>
         </div>
+        {mode === 'calibrate' && pending.length === 0 && (
+          <div style={{ position: 'absolute', top: '52px', left: '50%', transform: 'translateX(-50%)', background: '#F59E0B', color: '#1E293B', fontSize: '13px', fontWeight: 600, padding: '8px 16px', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 10, whiteSpace: 'nowrap' }}>
+            Click two points on the drawing where you can see a number (like a measurement), then type in that number
+          </div>
+        )}
         <a href={url} download
           style={{ background: '#2563EB', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}>
           Download
