@@ -20,6 +20,7 @@ export default function PDFViewer() {
   const [measurements, setMeasurements] = useState([]); // [{x1,y1,x2,y2,label}] in scale-1 coords
   const [calibPrompt, setCalibPrompt] = useState(null); // {px, p1, p2} when awaiting input
   const [calibInput, setCalibInput] = useState('');
+  const [snapHover, setSnapHover] = useState(null); // nearest snap-eligible point while hovering
 
   // Load saved calibration for this document, if any
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function PDFViewer() {
     if (!c || !o) return;
     o.width = c.width; o.height = c.height;
     drawOverlay();
-  }, [pdf, page, scale, measurements, pending]);
+  }, [pdf, page, scale, measurements, pending, snapHover]);
 
   const drawOverlay = () => {
     const o = overlayRef.current;
@@ -114,6 +115,11 @@ export default function PDFViewer() {
       ctx.fillStyle = '#2563EB';
       ctx.beginPath(); ctx.arc(p1.x*scale, p1.y*scale, 4, 0, Math.PI*2); ctx.fill();
     }
+    if (snapHover) {
+      ctx.strokeStyle = '#10B981';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(snapHover.x*scale, snapHover.y*scale, 8, 0, Math.PI*2); ctx.stroke();
+    }
   };
 
   const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
@@ -143,16 +149,49 @@ export default function PDFViewer() {
     }
   };
 
-  const handleOverlayClick = (e) => {
-    if (!mode) return;
+  const SNAP_RADIUS_PX = 10; // canvas pixels at current zoom
+
+  const findNearestCandidate = (pt) => {
+    const candidates = [];
+    measurements.forEach(m => {
+      candidates.push({ x: m.x1, y: m.y1 });
+      candidates.push({ x: m.x2, y: m.y2 });
+    });
+    let nearest = null;
+    let nearestDist = Infinity;
+    candidates.forEach(c => {
+      const d = dist(pt, c) * scale; // convert to screen pixels for threshold check
+      if (d < SNAP_RADIUS_PX && d < nearestDist) {
+        nearest = c;
+        nearestDist = d;
+      }
+    });
+    return nearest;
+  };
+
+  const snapToNearbyPoint = (pt) => findNearestCandidate(pt) || pt;
+
+  const pointFromEvent = (e) => {
     const o = overlayRef.current;
     const rect = o.getBoundingClientRect();
-    // Map CSS click coords -> canvas internal pixels, then -> scale-1 coords
     const ratioX = o.width / rect.width;
     const ratioY = o.height / rect.height;
     const canvasX = (e.clientX - rect.left) * ratioX;
     const canvasY = (e.clientY - rect.top) * ratioY;
-    const pt = { x: canvasX / scale, y: canvasY / scale };
+    return { x: canvasX / scale, y: canvasY / scale };
+  };
+
+  const handleOverlayMouseMove = (e) => {
+    if (!mode) { if (snapHover) setSnapHover(null); return; }
+    const rawPt = pointFromEvent(e);
+    const nearest = findNearestCandidate(rawPt);
+    setSnapHover(nearest);
+  };
+
+  const handleOverlayClick = (e) => {
+    if (!mode) return;
+    const rawPt = pointFromEvent(e);
+    const pt = snapToNearbyPoint(rawPt);
     const next = [...pending, pt];
 
     if (next.length < 2) { setPending(next); return; }
@@ -281,8 +320,8 @@ export default function PDFViewer() {
         )}
         <div style={{ position: 'relative', display: loading ? 'none' : 'block', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
           <canvas ref={canvasRef} style={{ display: 'block' }} />
-          <canvas ref={overlayRef} onClick={handleOverlayClick}
-            style={{ position: 'absolute', top: 0, left: 0, cursor: mode ? 'crosshair' : 'default', pointerEvents: mode ? 'auto' : 'none' }} />
+          <canvas ref={overlayRef} onClick={handleOverlayClick} onMouseMove={handleOverlayMouseMove}
+            style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: mode ? 'auto' : 'none' }} />
         </div>
       </div>
     </div>
