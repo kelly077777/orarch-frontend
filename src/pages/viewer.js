@@ -7,12 +7,14 @@ export default function PDFViewer() {
   const canvasRef = useRef();
   const containerRef = useRef();
   const pageRootRef = useRef();
+  const scrollTargetRef = useRef(null); // {x,y} in scale-1 coords to re-center after next render
   const [pdf, setPdf] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.5);
   const [rotation, setRotation] = useState(0);
   const [scaleHistory, setScaleHistory] = useState([]);
+  const [dragRect, setDragRect] = useState(null); // {startX,startY,curX,curY} in scale-1 coords, while drag-zooming
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // --- measurement state ---
@@ -78,6 +80,12 @@ export default function PDFViewer() {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       p.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      if (scrollTargetRef.current && containerRef.current) {
+        const { x, y } = scrollTargetRef.current;
+        containerRef.current.scrollLeft = x * scale - containerRef.current.clientWidth / 2 + 24;
+        containerRef.current.scrollTop = y * scale - containerRef.current.clientHeight / 2 + 24;
+        scrollTargetRef.current = null;
+      }
     });
   }, [pdf, page, scale, rotation]);
 
@@ -87,7 +95,7 @@ export default function PDFViewer() {
     if (!c || !o) return;
     o.width = c.width; o.height = c.height;
     drawOverlay();
-  }, [pdf, page, scale, measurements, pending, snapHover]);
+  }, [pdf, page, scale, measurements, pending, snapHover, dragRect]);
 
   const drawOverlay = () => {
     const o = overlayRef.current;
@@ -124,6 +132,19 @@ export default function PDFViewer() {
       ctx.strokeStyle = '#10B981';
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(snapHover.x*scale, snapHover.y*scale, 8, 0, Math.PI*2); ctx.stroke();
+    }
+    if (dragRect) {
+      const x = Math.min(dragRect.startX, dragRect.curX) * scale;
+      const y = Math.min(dragRect.startY, dragRect.curY) * scale;
+      const w = Math.abs(dragRect.curX - dragRect.startX) * scale;
+      const h = Math.abs(dragRect.curY - dragRect.startY) * scale;
+      ctx.strokeStyle = '#2563EB';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 3]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(37,99,235,0.1)';
+      ctx.fillRect(x, y, w, h);
     }
   };
 
@@ -233,6 +254,10 @@ export default function PDFViewer() {
   const handleOverlayMouseMove = (e) => {
     const rawPt = pointFromEvent(e);
     setCursorPos(rawPt);
+    if (mode === 'zoomwindow' && dragRect) {
+      setDragRect(r => ({ ...r, curX: rawPt.x, curY: rawPt.y }));
+      return;
+    }
     if (!mode) { if (snapHover) setSnapHover(null); return; }
     const nearest = findNearestCandidate(rawPt);
     setSnapHover(nearest);
@@ -243,7 +268,30 @@ export default function PDFViewer() {
     setSnapHover(null);
   };
 
+  const handleOverlayMouseDown = (e) => {
+    if (mode !== 'zoomwindow') return;
+    const rawPt = pointFromEvent(e);
+    setDragRect({ startX: rawPt.x, startY: rawPt.y, curX: rawPt.x, curY: rawPt.y });
+  };
+
+  const handleOverlayMouseUp = () => {
+    if (mode !== 'zoomwindow' || !dragRect || !containerRef.current) { setDragRect(null); return; }
+    const { startX, startY, curX, curY } = dragRect;
+    const rectW = Math.abs(curX - startX);
+    const rectH = Math.abs(curY - startY);
+    setDragRect(null);
+    if (rectW < 5 || rectH < 5) return;
+    const padding = 48;
+    const availWidth = containerRef.current.clientWidth - padding;
+    const availHeight = containerRef.current.clientHeight - padding;
+    const newScale = Math.min(availWidth / rectW, availHeight / rectH);
+    scrollTargetRef.current = { x: (startX + curX) / 2, y: (startY + curY) / 2 };
+    changeScale(newScale);
+    setMode(null);
+  };
+
   const handleOverlayClick = (e) => {
+    if (mode === 'zoomwindow') return;
     if (!mode) return;
     const rawPt = pointFromEvent(e);
     const pt = snapToNearbyPoint(rawPt);
@@ -307,6 +355,8 @@ export default function PDFViewer() {
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Fit</button>
           <button onClick={fitToScreen} title="Zoom to full drawing extents"
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Extents</button>
+          <button onClick={() => { setMode(mode === 'zoomwindow' ? null : 'zoomwindow'); setPending([]); }} title="Drag a rectangle to zoom into"
+            style={{ background: mode === 'zoomwindow' ? '#F59E0B' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Zoom Window</button>
           <button onClick={zoomPrevious} disabled={scaleHistory.length === 0} title="Zoom to previous view"
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: scaleHistory.length === 0 ? '#666' : '#fff', borderRadius: '4px', padding: '4px 10px', cursor: scaleHistory.length === 0 ? 'default' : 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Prev Zoom</button>
           <button onClick={rotateDrawing} title="Rotate drawing 90°"
@@ -387,7 +437,7 @@ export default function PDFViewer() {
         )}
         <div style={{ position: 'relative', display: loading ? 'none' : 'block', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
           <canvas ref={canvasRef} style={{ display: 'block' }} />
-          <canvas ref={overlayRef} onClick={handleOverlayClick} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave}
+          <canvas ref={overlayRef} onClick={handleOverlayClick} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave} onMouseDown={handleOverlayMouseDown} onMouseUp={handleOverlayMouseUp}
             style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: 'auto' }} />
           {cursorPos && (
             <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', color: '#10B981', fontSize: '11px', fontFamily: 'monospace', padding: '4px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
