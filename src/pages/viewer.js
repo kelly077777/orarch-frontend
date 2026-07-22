@@ -21,6 +21,7 @@ export default function PDFViewer() {
   const [calibPrompt, setCalibPrompt] = useState(null); // {px, p1, p2} when awaiting input
   const [calibInput, setCalibInput] = useState('');
   const [snapHover, setSnapHover] = useState(null); // nearest snap-eligible point while hovering
+  const [cursorPos, setCursorPos] = useState(null); // {x,y} in scale-1 coords, for coordinate readout
 
   // Load saved calibration for this document, if any
   useEffect(() => {
@@ -182,10 +183,16 @@ export default function PDFViewer() {
   };
 
   const handleOverlayMouseMove = (e) => {
-    if (!mode) { if (snapHover) setSnapHover(null); return; }
     const rawPt = pointFromEvent(e);
+    setCursorPos(rawPt);
+    if (!mode) { if (snapHover) setSnapHover(null); return; }
     const nearest = findNearestCandidate(rawPt);
     setSnapHover(nearest);
+  };
+
+  const handleOverlayMouseLeave = () => {
+    setCursorPos(null);
+    setSnapHover(null);
   };
 
   const handleOverlayClick = (e) => {
@@ -320,8 +327,17 @@ export default function PDFViewer() {
         )}
         <div style={{ position: 'relative', display: loading ? 'none' : 'block', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
           <canvas ref={canvasRef} style={{ display: 'block' }} />
-          <canvas ref={overlayRef} onClick={handleOverlayClick} onMouseMove={handleOverlayMouseMove}
-            style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: mode ? 'auto' : 'none' }} />
+          <canvas ref={overlayRef} onClick={handleOverlayClick} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave}
+            style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: 'auto' }} />
+          {cursorPos && (
+            <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', color: '#10B981', fontSize: '11px', fontFamily: 'monospace', padding: '4px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
+              X: {unitsPerPx ? (cursorPos.x * unitsPerPx).toFixed(2) : cursorPos.x.toFixed(1)}{unitsPerPx ? ` ${unit}` : 'px'}
+              {'  '}
+              Y: {unitsPerPx ? (cursorPos.y * unitsPerPx).toFixed(2) : cursorPos.y.toFixed(1)}{unitsPerPx ? ` ${unit}` : 'px'}
+              {'  '}
+              Scale: {Math.round(scale * 100)}%
+            </div>
+          )}
         </div>
       </div>
     </div>
