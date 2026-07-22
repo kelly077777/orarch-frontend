@@ -329,6 +329,9 @@ export default function PDFViewer() {
           <canvas ref={canvasRef} style={{ display: 'block' }} />
           <canvas ref={overlayRef} onClick={handleOverlayClick} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave}
             style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: 'auto' }} />
+          <div style={{ position: 'absolute', bottom: '30px', left: '8px', background: 'red', color: '#fff', fontSize: '11px', padding: '4px 8px', zIndex: 999 }}>
+            DEBUG: cursorPos is {cursorPos ? 'SET' : 'NULL'}
+          </div>
           {cursorPos && (
             <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', color: '#10B981', fontSize: '11px', fontFamily: 'monospace', padding: '4px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
               X: {unitsPerPx ? (cursorPos.x * unitsPerPx).toFixed(2) : cursorPos.x.toFixed(1)}{unitsPerPx ? ` ${unit}` : 'px'}
