@@ -125,6 +125,18 @@ export default function PDFViewer() {
 
   const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 
+  const fitToScreen = () => {
+    if (!pdf || !containerRef.current) return;
+    pdf.getPage(page).then(p => {
+      const nativeViewport = p.getViewport({ scale: 1 });
+      const padding = 48; // matches the 24px container padding on each side
+      const availWidth = containerRef.current.clientWidth - padding;
+      const availHeight = containerRef.current.clientHeight - padding;
+      const fitScale = Math.min(availWidth / nativeViewport.width, availHeight / nativeViewport.height);
+      setScale(+Math.max(0.25, Math.min(4, fitScale)).toFixed(2));
+    });
+  };
+
   const applyCalibration = async () => {
     const real = parseFloat(calibInput);
     if (isNaN(real) || real <= 0 || !calibPrompt || calibPrompt.px <= 0) {
@@ -255,6 +267,8 @@ export default function PDFViewer() {
           <span style={{ color: '#ccc', fontSize: '13px', minWidth: '48px', textAlign: 'center' }}>{Math.round(scale * 100)}%</span>
           <button onClick={() => setScale(s => Math.min(4, +(s + 0.25).toFixed(2)))}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '16px' }}>+</button>
+          <button onClick={fitToScreen} title="Fit drawing to screen"
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Fit</button>
         </div>
 
         {/* Measurement tools */}
