@@ -6,11 +6,13 @@ export default function PDFViewer() {
   const { url, title, docId, projectId } = router.query;
   const canvasRef = useRef();
   const containerRef = useRef();
+  const pageRootRef = useRef();
   const [pdf, setPdf] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.5);
   const [loading, setLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // --- measurement state ---
   const overlayRef = useRef();
   const [mode, setMode] = useState(null);            // null | 'calibrate' | 'measure'
@@ -125,6 +127,20 @@ export default function PDFViewer() {
 
   const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      pageRootRef.current?.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
   const fitToScreen = () => {
     if (!pdf || !containerRef.current) return;
     pdf.getPage(page).then(p => {
@@ -237,7 +253,7 @@ export default function PDFViewer() {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#525659', fontFamily: 'Arial, sans-serif' }}>
+    <div ref={pageRootRef} style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#525659', fontFamily: 'Arial, sans-serif' }}>
       
       {/* Toolbar */}
       <div style={{ background: '#3c3f41', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, borderBottom: '1px solid #222', position: 'relative' }}>
@@ -269,6 +285,10 @@ export default function PDFViewer() {
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '16px' }}>+</button>
           <button onClick={fitToScreen} title="Fit drawing to screen"
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Fit</button>
+          <button onClick={toggleFullscreen} title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+            style={{ background: isFullscreen ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
+            {isFullscreen ? 'Exit FS' : 'Full Screen'}
+          </button>
         </div>
 
         {/* Measurement tools */}
