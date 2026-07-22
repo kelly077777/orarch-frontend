@@ -11,6 +11,8 @@ export default function PDFViewer() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.5);
+  const [rotation, setRotation] = useState(0);
+  const [scaleHistory, setScaleHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // --- measurement state ---
@@ -71,13 +73,13 @@ export default function PDFViewer() {
   useEffect(() => {
     if (!pdf || !canvasRef.current) return;
     pdf.getPage(page).then(p => {
-      const viewport = p.getViewport({ scale });
+      const viewport = p.getViewport({ scale, rotation });
       const canvas = canvasRef.current;
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       p.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
     });
-  }, [pdf, page, scale]);
+  }, [pdf, page, scale, rotation]);
 
   // --- measurement: keep overlay canvas sized to the PDF canvas, then redraw ---
   useEffect(() => {
@@ -127,6 +129,24 @@ export default function PDFViewer() {
 
   const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 
+  const changeScale = (newScale) => {
+    setScaleHistory(h => [...h, scale]);
+    setScale(+Math.max(0.25, Math.min(4, newScale)).toFixed(2));
+  };
+
+  const zoomPrevious = () => {
+    setScaleHistory(h => {
+      if (h.length === 0) return h;
+      const prev = h[h.length - 1];
+      setScale(prev);
+      return h.slice(0, -1);
+    });
+  };
+
+  const rotateDrawing = () => {
+    setRotation(r => (r + 90) % 360);
+  };
+
   useEffect(() => {
     const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', handleFsChange);
@@ -144,12 +164,12 @@ export default function PDFViewer() {
   const fitToScreen = () => {
     if (!pdf || !containerRef.current) return;
     pdf.getPage(page).then(p => {
-      const nativeViewport = p.getViewport({ scale: 1 });
+      const nativeViewport = p.getViewport({ scale: 1, rotation });
       const padding = 48; // matches the 24px container padding on each side
       const availWidth = containerRef.current.clientWidth - padding;
       const availHeight = containerRef.current.clientHeight - padding;
       const fitScale = Math.min(availWidth / nativeViewport.width, availHeight / nativeViewport.height);
-      setScale(+Math.max(0.25, Math.min(4, fitScale)).toFixed(2));
+      changeScale(fitScale);
     });
   };
 
@@ -278,13 +298,19 @@ export default function PDFViewer() {
 
         {/* Zoom controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button onClick={() => setScale(s => Math.max(0.5, +(s - 0.25).toFixed(2)))}
+          <button onClick={() => changeScale(scale - 0.25)}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '16px' }}>−</button>
           <span style={{ color: '#ccc', fontSize: '13px', minWidth: '48px', textAlign: 'center' }}>{Math.round(scale * 100)}%</span>
-          <button onClick={() => setScale(s => Math.min(4, +(s + 0.25).toFixed(2)))}
+          <button onClick={() => changeScale(scale + 0.25)}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '16px' }}>+</button>
           <button onClick={fitToScreen} title="Fit drawing to screen"
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Fit</button>
+          <button onClick={fitToScreen} title="Zoom to full drawing extents"
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Extents</button>
+          <button onClick={zoomPrevious} disabled={scaleHistory.length === 0} title="Zoom to previous view"
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: scaleHistory.length === 0 ? '#666' : '#fff', borderRadius: '4px', padding: '4px 10px', cursor: scaleHistory.length === 0 ? 'default' : 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Prev Zoom</button>
+          <button onClick={rotateDrawing} title="Rotate drawing 90°"
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Rotate</button>
           <button onClick={toggleFullscreen} title={isFullscreen ? 'Exit full screen' : 'Full screen'}
             style={{ background: isFullscreen ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
             {isFullscreen ? 'Exit FS' : 'Full Screen'}
