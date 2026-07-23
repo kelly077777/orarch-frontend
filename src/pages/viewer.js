@@ -8,6 +8,7 @@ export default function PDFViewer() {
   const containerRef = useRef();
   const pageRootRef = useRef();
   const scrollTargetRef = useRef(null); // {x,y} in scale-1 coords to re-center after next render
+  const miniMapRef = useRef();
   const [pdf, setPdf] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -15,6 +16,7 @@ export default function PDFViewer() {
   const [rotation, setRotation] = useState(0);
   const [scaleHistory, setScaleHistory] = useState([]);
   const [dragRect, setDragRect] = useState(null); // {startX,startY,curX,curY} in scale-1 coords, while drag-zooming
+  const [viewportRect, setViewportRect] = useState({ left: 0, top: 0, width: 0, height: 0 }); // mini-map indicator box, in mini-map px
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // --- measurement state ---
@@ -93,8 +95,66 @@ export default function PDFViewer() {
         c.scrollTop = canvasTopInScroll + (y * scale) - c.clientHeight / 2;
         scrollTargetRef.current = null;
       }
+      setTimeout(updateMiniMapViewport, 0);
     });
   }, [pdf, page, scale, rotation]);
+
+  // Render the mini-map thumbnail whenever the page or rotation changes
+  useEffect(() => {
+    if (!pdf || !miniMapRef.current) return;
+    pdf.getPage(page).then(p => {
+      const native = p.getViewport({ scale: 1, rotation });
+      const thumbScale = Math.min(150 / native.width, 110 / native.height);
+      const viewport = p.getViewport({ scale: thumbScale, rotation });
+      const canvas = miniMapRef.current;
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      p.render({ canvasContext: canvas.getContext('2d'), viewport }).promise.then(() => {
+        setTimeout(updateMiniMapViewport, 0);
+      });
+    });
+  }, [pdf, page, rotation]);
+
+  const updateMiniMapViewport = () => {
+    if (!containerRef.current || !canvasRef.current || !miniMapRef.current) return;
+    const c = containerRef.current;
+    const canvasEl = canvasRef.current;
+    const mm = miniMapRef.current;
+    if (canvasEl.width === 0 || mm.width === 0) return;
+    const containerRect = c.getBoundingClientRect();
+    const canvasRect = canvasEl.getBoundingClientRect();
+    const canvasLeftInScroll = (canvasRect.left - containerRect.left) + c.scrollLeft;
+    const canvasTopInScroll = (canvasRect.top - containerRect.top) + c.scrollTop;
+    const visLeft = c.scrollLeft - canvasLeftInScroll;
+    const visTop = c.scrollTop - canvasTopInScroll;
+    const ratio = mm.width / canvasEl.width;
+    setViewportRect({
+      left: Math.max(0, visLeft) * ratio,
+      top: Math.max(0, visTop) * ratio,
+      width: Math.min(c.clientWidth, canvasEl.width) * ratio,
+      height: Math.min(c.clientHeight, canvasEl.height) * ratio,
+    });
+  };
+
+  const handleMiniMapClick = (e) => {
+    if (!miniMapRef.current || !containerRef.current || !canvasRef.current) return;
+    const mm = miniMapRef.current;
+    const rect = mm.getBoundingClientRect();
+    const clickX = (e.clientX - rect.left) * (mm.width / rect.width);
+    const clickY = (e.clientY - rect.top) * (mm.height / rect.height);
+    const ratio = mm.width / canvasRef.current.width;
+    const canvasX = clickX / ratio;
+    const canvasY = clickY / ratio;
+    const c = containerRef.current;
+    const canvasEl = canvasRef.current;
+    const containerRect = c.getBoundingClientRect();
+    const canvasRect = canvasEl.getBoundingClientRect();
+    const canvasLeftInScroll = (canvasRect.left - containerRect.left) + c.scrollLeft;
+    const canvasTopInScroll = (canvasRect.top - containerRect.top) + c.scrollTop;
+    c.scrollLeft = canvasLeftInScroll + canvasX - c.clientWidth / 2;
+    c.scrollTop = canvasTopInScroll + canvasY - c.clientHeight / 2;
+    updateMiniMapViewport();
+  };
 
   // --- measurement: keep overlay canvas sized to the PDF canvas, then redraw ---
   useEffect(() => {
@@ -438,7 +498,7 @@ export default function PDFViewer() {
       )}
 
       {/* PDF Canvas */}
-      <div ref={containerRef} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px' }}>
+      <div ref={containerRef} onScroll={updateMiniMapViewport} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px', position: 'relative' }}>
         {loading && (
           <div style={{ color: '#ccc', fontSize: '14px', marginTop: '40px' }}>Loading document...</div>
         )}
@@ -457,6 +517,14 @@ export default function PDFViewer() {
           )}
         </div>
       </div>
+      {!loading && (
+        <div style={{ position: 'fixed', bottom: '16px', right: '16px', zIndex: 50, background: '#2a2a2a', border: '1px solid #555', borderRadius: '4px', padding: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
+          <div style={{ position: 'relative', width: '150px', height: '110px' }}>
+            <canvas ref={miniMapRef} onClick={handleMiniMapClick} style={{ display: 'block', cursor: 'pointer', width: '150px', height: '110px' }} />
+            <div style={{ position: 'absolute', border: '2px solid #EF4444', background: 'rgba(239,68,68,0.15)', pointerEvents: 'none', left: viewportRect.left, top: viewportRect.top, width: viewportRect.width, height: viewportRect.height }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
