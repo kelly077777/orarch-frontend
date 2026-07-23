@@ -80,10 +80,17 @@ export default function PDFViewer() {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       p.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-      if (scrollTargetRef.current && containerRef.current) {
+      if (scrollTargetRef.current && containerRef.current && canvasRef.current) {
         const { x, y } = scrollTargetRef.current;
-        containerRef.current.scrollLeft = x * scale - containerRef.current.clientWidth / 2 + 24;
-        containerRef.current.scrollTop = y * scale - containerRef.current.clientHeight / 2 + 24;
+        const c = containerRef.current;
+        const canvasEl = canvasRef.current;
+        // Use actual rendered positions (robust to the container's flex centering)
+        const containerRect = c.getBoundingClientRect();
+        const canvasRect = canvasEl.getBoundingClientRect();
+        const canvasLeftInScroll = (canvasRect.left - containerRect.left) + c.scrollLeft;
+        const canvasTopInScroll = (canvasRect.top - containerRect.top) + c.scrollTop;
+        c.scrollLeft = canvasLeftInScroll + (x * scale) - c.clientWidth / 2;
+        c.scrollTop = canvasTopInScroll + (y * scale) - c.clientHeight / 2;
         scrollTargetRef.current = null;
       }
     });
