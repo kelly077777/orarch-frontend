@@ -210,12 +210,39 @@ export default function PDFViewer() {
       }
     };
 
+    const drawPolygon = (points, label, color, filled) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath();
+      points.forEach((pt, i) => { if (i === 0) ctx.moveTo(pt.x*scale, pt.y*scale); else ctx.lineTo(pt.x*scale, pt.y*scale); });
+      if (filled) ctx.closePath();
+      if (filled) { ctx.fillStyle = 'rgba(37,99,235,0.15)'; ctx.fill(); }
+      ctx.stroke();
+      points.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x*scale, pt.y*scale, 4, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); });
+      if (label && points.length > 0) {
+        const cx = points.reduce((s,p) => s+p.x, 0) / points.length * scale;
+        const cy = points.reduce((s,p) => s+p.y, 0) / points.length * scale;
+        ctx.font = 'bold 13px Arial';
+        const w = ctx.measureText(label).width + 10;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fillRect(cx - w/2, cy - 10, w, 20);
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.strokeRect(cx - w/2, cy - 10, w, 20);
+        ctx.fillStyle = '#111';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, cx, cy + 4);
+      }
+    };
+
     measurements.forEach(m => {
-      if (m.points) drawPolyline(m.points, m.label, '#EF4444');
+      if (m.isArea) drawPolygon(m.points, m.label, '#EF4444', true);
+      else if (m.points) drawPolyline(m.points, m.label, '#EF4444');
       else drawSeg({x:m.x1,y:m.y1}, {x:m.x2,y:m.y2}, m.label, '#EF4444');
     });
     if (mode === 'polyline' && pending.length > 0) {
       drawPolyline(pending, null, '#2563EB');
+    }
+    if (mode === 'area' && pending.length > 0) {
+      drawPolygon(pending, null, '#2563EB', pending.length > 2);
     }
     if (pending.length === 1) {
       const p1 = pending[0];
@@ -396,12 +423,30 @@ export default function PDFViewer() {
     setPending([]);
   };
 
+  const finishArea = () => {
+    if (mode !== 'area') return;
+    if (pending.length < 3) { setPending([]); return; }
+    if (!unitsPerPx) { alert('Please calibrate first (click Calibrate, then click a line of known length).'); setPending([]); setMode(null); return; }
+    // Shoelace formula for polygon area, in px^2
+    let areaPx = 0;
+    for (let i = 0; i < pending.length; i++) {
+      const p1 = pending[i];
+      const p2 = pending[(i + 1) % pending.length];
+      areaPx += p1.x * p2.y - p2.x * p1.y;
+    }
+    areaPx = Math.abs(areaPx) / 2;
+    const realArea = areaPx * unitsPerPx * unitsPerPx;
+    const label = `${realArea.toFixed(2)} ${unit}²`;
+    setMeasurements(ms => [...ms, { points: [...pending], label, isArea: true }]);
+    setPending([]);
+  };
+
   const handleOverlayClick = (e) => {
     if (mode === 'zoomwindow') return;
     if (!mode) return;
     const rawPt = pointFromEvent(e);
     const pt = snapToNearbyPoint(rawPt);
-    if (mode === 'polyline') {
+    if (mode === 'polyline' || mode === 'area') {
       setPending(p => [...p, pt]);
       return;
     }
@@ -500,6 +545,11 @@ export default function PDFViewer() {
             style={{ background: mode === 'polyline' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
             Polyline
           </button>
+          <button onClick={() => { setMode(mode === 'area' ? null : 'area'); setPending([]); }}
+            title="Click points around an area, double-click to close and calculate"
+            style={{ background: mode === 'area' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
+            Area
+          </button>
           <button onClick={() => { setMeasurements([]); setPending([]); setMode(null); }}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px' }}>
             Clear
@@ -552,7 +602,7 @@ export default function PDFViewer() {
         )}
         <div style={{ position: 'relative', display: loading ? 'none' : 'block', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
           <canvas ref={canvasRef} style={{ display: 'block' }} />
-          <canvas ref={overlayRef} onClick={handleOverlayClick} onDoubleClick={finishPolyline} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave} onMouseDown={handleOverlayMouseDown} onMouseUp={handleOverlayMouseUp}
+          <canvas ref={overlayRef} onClick={handleOverlayClick} onDoubleClick={() => { finishPolyline(); finishArea(); }} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave} onMouseDown={handleOverlayMouseDown} onMouseUp={handleOverlayMouseUp}
             style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: 'auto' }} />
           {cursorPos && (
             <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', color: '#10B981', fontSize: '11px', fontFamily: 'monospace', padding: '4px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
