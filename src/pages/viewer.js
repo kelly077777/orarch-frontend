@@ -189,7 +189,34 @@ export default function PDFViewer() {
       }
     };
 
-    measurements.forEach(m => drawSeg({x:m.x1,y:m.y1}, {x:m.x2,y:m.y2}, m.label, '#EF4444'));
+    const drawPolyline = (points, label, color) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath();
+      points.forEach((pt, i) => { if (i === 0) ctx.moveTo(pt.x*scale, pt.y*scale); else ctx.lineTo(pt.x*scale, pt.y*scale); });
+      ctx.stroke();
+      points.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x*scale, pt.y*scale, 4, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); });
+      if (label && points.length > 0) {
+        const last = points[points.length - 1];
+        const mx = last.x*scale, my = last.y*scale;
+        ctx.font = 'bold 13px Arial';
+        const w = ctx.measureText(label).width + 10;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fillRect(mx + 8, my - 10, w, 20);
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.strokeRect(mx + 8, my - 10, w, 20);
+        ctx.fillStyle = '#111';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, mx + 8 + w/2, my + 4);
+      }
+    };
+
+    measurements.forEach(m => {
+      if (m.points) drawPolyline(m.points, m.label, '#EF4444');
+      else drawSeg({x:m.x1,y:m.y1}, {x:m.x2,y:m.y2}, m.label, '#EF4444');
+    });
+    if (mode === 'polyline' && pending.length > 0) {
+      drawPolyline(pending, null, '#2563EB');
+    }
     if (pending.length === 1) {
       const p1 = pending[0];
       ctx.fillStyle = '#2563EB';
@@ -357,11 +384,27 @@ export default function PDFViewer() {
     setMode(null);
   };
 
+  const finishPolyline = () => {
+    if (mode !== 'polyline') return;
+    if (pending.length < 2) { setPending([]); return; }
+    if (!unitsPerPx) { alert('Please calibrate first (click Calibrate, then click a line of known length).'); setPending([]); setMode(null); return; }
+    let totalPx = 0;
+    for (let i = 1; i < pending.length; i++) totalPx += dist(pending[i - 1], pending[i]);
+    const real = totalPx * unitsPerPx;
+    const label = `${real.toFixed(2)} ${unit}`;
+    setMeasurements(ms => [...ms, { points: [...pending], label }]);
+    setPending([]);
+  };
+
   const handleOverlayClick = (e) => {
     if (mode === 'zoomwindow') return;
     if (!mode) return;
     const rawPt = pointFromEvent(e);
     const pt = snapToNearbyPoint(rawPt);
+    if (mode === 'polyline') {
+      setPending(p => [...p, pt]);
+      return;
+    }
     const next = [...pending, pt];
 
     if (next.length < 2) { setPending(next); return; }
@@ -452,6 +495,11 @@ export default function PDFViewer() {
             style={{ background: mode === 'measure' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
             Measure
           </button>
+          <button onClick={() => { setMode(mode === 'polyline' ? null : 'polyline'); setPending([]); }}
+            title="Click multiple points, double-click to finish"
+            style={{ background: mode === 'polyline' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
+            Polyline
+          </button>
           <button onClick={() => { setMeasurements([]); setPending([]); setMode(null); }}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px' }}>
             Clear
@@ -504,7 +552,7 @@ export default function PDFViewer() {
         )}
         <div style={{ position: 'relative', display: loading ? 'none' : 'block', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
           <canvas ref={canvasRef} style={{ display: 'block' }} />
-          <canvas ref={overlayRef} onClick={handleOverlayClick} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave} onMouseDown={handleOverlayMouseDown} onMouseUp={handleOverlayMouseUp}
+          <canvas ref={overlayRef} onClick={handleOverlayClick} onDoubleClick={finishPolyline} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave} onMouseDown={handleOverlayMouseDown} onMouseUp={handleOverlayMouseUp}
             style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: 'auto' }} />
           {cursorPos && (
             <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', color: '#10B981', fontSize: '11px', fontFamily: 'monospace', padding: '4px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
