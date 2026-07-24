@@ -252,6 +252,78 @@ function VersionsTab({ docId, doc, user, token, BASE_URL }) {
   );
 }
 
+function AttachmentsTab({ docId, projectId, user, token, BASE_URL }) {
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef();
+
+  const loadAttachments = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/attachments?documentId=${docId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setAttachments(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => { if (docId) loadAttachments(); }, [docId]);
+
+  const uploadAttachment = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('projectId', projectId || '');
+      const up = await fetch(`${BASE_URL}/files/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+      const upData = await up.json();
+      await fetch(`${BASE_URL}/attachments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ documentId: docId, fileName: upData.originalName || file.name, fileUrl: upData.url, publicId: upData.publicId, fileSize: upData.bytes || file.size, format: upData.format, uploadedByName: `${user.firstName} ${user.lastName}` })
+      });
+      loadAttachments();
+    } catch (err) { console.error(err); alert('Upload failed'); }
+    finally { setUploading(false); }
+  };
+
+  const deleteAttachment = async (attId) => {
+    try {
+      await fetch(`${BASE_URL}/attachments/${attId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      loadAttachments();
+    } catch (err) { console.error(err); }
+  };
+
+  function formatSize(bytes) {
+    if (!bytes) return '—';
+    if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    if (bytes > 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${bytes} B`;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={e => { uploadAttachment(e.target.files[0]); e.target.value = ''; }} />
+      <button onClick={() => fileRef.current.click()} disabled={uploading}
+        style={{ background: uploading ? '#93C5FD' : '#2563EB', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer' }}>
+        {uploading ? 'Uploading...' : '+ Add Attachment'}
+      </button>
+      {attachments.length === 0 && <div style={{ fontSize: '13px', color: '#94A3B8' }}>No attachments yet</div>}
+      {attachments.map(a => (
+        <div key={a.id} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '32px', height: '32px', background: '#E2E8F0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', flexShrink: 0 }}>📎</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.fileName}</div>
+            <div style={{ fontSize: '11px', color: '#94A3B8' }}>{a.uploadedByName || 'Unknown'} · {formatSize(a.fileSize)}</div>
+          </div>
+          {a.fileUrl && <a href={a.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#2563EB', textDecoration: 'none', flexShrink: 0 }}>⬇</a>}
+          <button onClick={() => deleteAttachment(a.id)}
+            style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: '13px', cursor: 'pointer', flexShrink: 0 }}>✕</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DocumentDetailPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -264,6 +336,7 @@ export default function DocumentDetailPage() {
   const [allDocs, setAllDocs] = useState([]);
   const [versionsCount, setVersionsCount] = useState(0);
   const [approvalsCount, setApprovalsCount] = useState(0);
+  const [history, setHistory] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareLink, setShowShareLink] = useState(false);
 
@@ -273,18 +346,20 @@ export default function DocumentDetailPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [docData, commentsData, allDocsData, versionsData, approvalsData] = await Promise.all([
+      const [docData, commentsData, allDocsData, versionsData, approvalsData, historyData] = await Promise.all([
         apiFetch(`/documents/${id}`),
         apiFetch(`/comments?documentId=${id}`).catch(() => []),
         projectId ? apiFetch(`/documents?projectId=${projectId}`) : Promise.resolve([]),
         apiFetch(`/documents/${id}/versions`).catch(() => []),
         projectId ? apiFetch(`/approvals?projectId=${projectId}`).catch(() => []) : Promise.resolve([]),
+        apiFetch(`/audit/entity?entityType=DOCUMENT&entityId=${id}`).catch(() => []),
       ]);
       setDoc(docData);
       setComments(Array.isArray(commentsData) ? commentsData : []);
       setAllDocs(Array.isArray(allDocsData) ? allDocsData : []);
       setVersionsCount(Array.isArray(versionsData) ? versionsData.length : 0);
       setApprovalsCount(Array.isArray(approvalsData) ? approvalsData.filter(a => a.documentId === id).length : 0);
+      setHistory(Array.isArray(historyData) ? historyData : []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -326,7 +401,7 @@ export default function DocumentDetailPage() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* Icon sidebar - 2 column Bricsys style */}
-<div style={{ width: '84px', minWidth: '84px', background: '#1E293B', border: '3px solid red', display: 'grid', gridTemplateColumns: '40px 40px', justifyContent: 'center', paddingTop: '12px', gap: '2px', flexShrink: 0, alignContent: 'start' }}>
+<div style={{ width: '84px', minWidth: '84px', background: '#1E293B', display: 'grid', gridTemplateColumns: '40px 40px', justifyContent: 'center', paddingTop: '12px', gap: '2px', flexShrink: 0, alignContent: 'start' }}>
   {[
     // Left column - primary nav (route away)
     { title: 'Files', onClick: () => router.push(`/projects/${projectId}`), active: true, icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="10" height="14" rx="1.5" stroke="#fff" strokeWidth="1.4"/><path d="M6 6h6M6 9h4" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></svg> },
@@ -592,12 +667,7 @@ export default function DocumentDetailPage() {
               )}
 
               {activeTab === 'Attachments' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '13px', color: '#94A3B8' }}>No attachments yet</div>
-                  <button style={{ background: '#F1F5F9', color: '#475569', border: '1px dashed #CBD5E1', borderRadius: '8px', padding: '10px', fontSize: '12px', cursor: 'pointer' }}>
-                    + Add Attachment
-                  </button>
-                </div>
+                <AttachmentsTab docId={id} projectId={projectId} user={user} token={getToken()} BASE_URL={BASE_URL} />
               )}
 
               {activeTab === 'Versions' && (
@@ -606,16 +676,13 @@ export default function DocumentDetailPage() {
 
               {activeTab === 'History' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {[
-                    { action: 'Created', date: formatDate(doc?.createdAt) },
-                    { action: 'Last Updated', date: formatDate(doc?.updatedAt) },
-                    { action: `Status: ${doc?.status}`, date: formatDate(doc?.updatedAt) },
-                  ].map((h, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: i < 2 ? '1px solid #F1F5F9' : 'none' }}>
+                  {history.length === 0 && <div style={{ fontSize: '13px', color: '#94A3B8' }}>No history recorded yet</div>}
+                  {history.map((h, i) => (
+                    <div key={h.id || i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', paddingBottom: '8px', borderBottom: i < history.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563EB', marginTop: '4px', flexShrink: 0 }} />
                       <div>
                         <div style={{ fontSize: '12px', fontWeight: 600, color: '#1E293B' }}>{h.action}</div>
-                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>{h.date}</div>
+                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>{formatDate(h.createdAt)}</div>
                       </div>
                     </div>
                   ))}
