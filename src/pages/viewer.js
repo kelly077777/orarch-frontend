@@ -233,8 +233,29 @@ export default function PDFViewer() {
       }
     };
 
+    const drawCircle = (center, edge, label, color) => {
+      const r = dist(center, edge) * scale;
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(center.x*scale, center.y*scale, r, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(center.x*scale, center.y*scale); ctx.lineTo(edge.x*scale, edge.y*scale); ctx.stroke();
+      [center, edge].forEach(pt => { ctx.beginPath(); ctx.arc(pt.x*scale, pt.y*scale, 4, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); });
+      if (label) {
+        const mx = (center.x+edge.x)/2*scale, my = (center.y+edge.y)/2*scale;
+        ctx.font = 'bold 13px Arial';
+        const w = ctx.measureText(label).width + 10;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fillRect(mx - w/2, my - 22, w, 20);
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.strokeRect(mx - w/2, my - 22, w, 20);
+        ctx.fillStyle = '#111';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, mx, my - 8);
+      }
+    };
+
     measurements.forEach(m => {
       if (m.isArea) drawPolygon(m.points, m.label, '#EF4444', true);
+      else if (m.isRadius || m.isDiameter) drawCircle({x:m.x1,y:m.y1}, {x:m.x2,y:m.y2}, m.label, '#EF4444');
       else if (m.points) drawPolyline(m.points, m.label, '#EF4444');
       else drawSeg({x:m.x1,y:m.y1}, {x:m.x2,y:m.y2}, m.label, '#EF4444');
     });
@@ -243,6 +264,9 @@ export default function PDFViewer() {
     }
     if (mode === 'area' && pending.length > 0) {
       drawPolygon(pending, null, '#2563EB', pending.length > 2);
+    }
+    if ((mode === 'radius' || mode === 'diameter') && pending.length === 1) {
+      // live preview handled by the generic single-point marker below
     }
     if (pending.length === 1) {
       const p1 = pending[0];
@@ -473,6 +497,22 @@ export default function PDFViewer() {
       // stay in measure mode so they can take several measurements
       return;
     }
+    if (mode === 'radius') {
+      if (!unitsPerPx) { alert('Please calibrate first (click Calibrate, then click a line of known length).'); setPending([]); setMode(null); return; }
+      const realRadius = px * unitsPerPx;
+      const label = `R ${realRadius.toFixed(2)} ${unit}`;
+      setMeasurements(ms => [...ms, { x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y, label, isRadius: true }]);
+      setPending([]);
+      return;
+    }
+    if (mode === 'diameter') {
+      if (!unitsPerPx) { alert('Please calibrate first (click Calibrate, then click a line of known length).'); setPending([]); setMode(null); return; }
+      const realDiameter = px * unitsPerPx;
+      const label = `⌀ ${realDiameter.toFixed(2)} ${unit}`;
+      setMeasurements(ms => [...ms, { x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y, label, isDiameter: true }]);
+      setPending([]);
+      return;
+    }
   };
 
   return (
@@ -539,6 +579,16 @@ export default function PDFViewer() {
             title="Click two points to measure the distance"
             style={{ background: mode === 'measure' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
             Measure
+          </button>
+          <button onClick={() => { setMode(mode === 'radius' ? null : 'radius'); setPending([]); }}
+            title="Click center point, then edge point"
+            style={{ background: mode === 'radius' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
+            Radius
+          </button>
+          <button onClick={() => { setMode(mode === 'diameter' ? null : 'diameter'); setPending([]); }}
+            title="Click one edge point, then the opposite edge point"
+            style={{ background: mode === 'diameter' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
+            Diameter
           </button>
           <button onClick={() => { setMode(mode === 'polyline' ? null : 'polyline'); setPending([]); }}
             title="Click multiple points, double-click to finish"
