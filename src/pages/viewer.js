@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import { Maximize2, Expand, ScanSearch, RotateCcw, RotateCw, Maximize, Minimize, Ruler, SlidersHorizontal, Circle, CircleDot, Spline, LassoSelect, Eraser } from 'lucide-react';
 
 export default function PDFViewer() {
   const router = useRouter();
@@ -547,18 +548,18 @@ export default function PDFViewer() {
           <button onClick={() => changeScale(scale + 0.25)}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '16px' }}>+</button>
           <button onClick={fitToScreen} title="Fit drawing to screen"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Fit</button>
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><Maximize2 size={16} /></button>
           <button onClick={fitToScreen} title="Zoom to full drawing extents"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Extents</button>
-          <button onClick={() => { setMode(mode === 'zoomwindow' ? null : 'zoomwindow'); setPending([]); }} title="Drag a rectangle to zoom into"
-            style={{ background: mode === 'zoomwindow' ? '#F59E0B' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Zoom Window</button>
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><Expand size={16} /></button>
+          <button onClick={() => { setMode(mode === 'zoomwindow' ? null : 'zoomwindow'); setPending([]); }} title="Zoom Window: drag a rectangle to zoom into"
+            style={{ background: mode === 'zoomwindow' ? '#F59E0B' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><ScanSearch size={16} /></button>
           <button onClick={zoomPrevious} disabled={scaleHistory.length === 0} title="Zoom to previous view"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: scaleHistory.length === 0 ? '#666' : '#fff', borderRadius: '4px', padding: '4px 10px', cursor: scaleHistory.length === 0 ? 'default' : 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Prev Zoom</button>
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: scaleHistory.length === 0 ? '#666' : '#fff', borderRadius: '4px', padding: '6px', cursor: scaleHistory.length === 0 ? 'default' : 'pointer', display: 'flex' }}><RotateCcw size={16} /></button>
           <button onClick={rotateDrawing} title="Rotate drawing 90°"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>Rotate</button>
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><RotateCw size={16} /></button>
           <button onClick={toggleFullscreen} title={isFullscreen ? 'Exit full screen' : 'Full screen'}
-            style={{ background: isFullscreen ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            {isFullscreen ? 'Exit FS' : 'Full Screen'}
+            style={{ background: isFullscreen ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
           </button>
         </div>
 
@@ -571,38 +572,39 @@ export default function PDFViewer() {
             <option value="mm">mm</option>
           </select>
           <button onClick={() => { setMode(mode === 'calibrate' ? null : 'calibrate'); setPending([]); }}
-            title="Click two points on a line of known length, then enter its real length"
-            style={{ background: mode === 'calibrate' ? '#F59E0B' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            Calibrate
+            title="Calibrate: click two points on a line of known length, then enter its real length"
+            style={{ background: mode === 'calibrate' ? '#F59E0B' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <SlidersHorizontal size={16} />
           </button>
           <button onClick={() => { setMode(mode === 'measure' ? null : 'measure'); setPending([]); }}
-            title="Click two points to measure the distance"
-            style={{ background: mode === 'measure' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            Measure
+            title="Measure: click two points to measure the distance"
+            style={{ background: mode === 'measure' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <Ruler size={16} />
           </button>
           <button onClick={() => { setMode(mode === 'radius' ? null : 'radius'); setPending([]); }}
-            title="Click center point, then edge point"
-            style={{ background: mode === 'radius' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            Radius
+            title="Radius: click center point, then edge point"
+            style={{ background: mode === 'radius' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <CircleDot size={16} />
           </button>
           <button onClick={() => { setMode(mode === 'diameter' ? null : 'diameter'); setPending([]); }}
-            title="Click one edge point, then the opposite edge point"
-            style={{ background: mode === 'diameter' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            Diameter
+            title="Diameter: click one edge point, then the opposite edge point"
+            style={{ background: mode === 'diameter' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <Circle size={16} />
           </button>
           <button onClick={() => { setMode(mode === 'polyline' ? null : 'polyline'); setPending([]); }}
-            title="Click multiple points, double-click to finish"
-            style={{ background: mode === 'polyline' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            Polyline
+            title="Polyline: click multiple points, double-click to finish"
+            style={{ background: mode === 'polyline' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <Spline size={16} />
           </button>
           <button onClick={() => { setMode(mode === 'area' ? null : 'area'); setPending([]); }}
-            title="Click points around an area, double-click to close and calculate"
-            style={{ background: mode === 'area' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-            Area
+            title="Area: click points around an area, double-click to close and calculate"
+            style={{ background: mode === 'area' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <LassoSelect size={16} />
           </button>
           <button onClick={() => { setMeasurements([]); setPending([]); setMode(null); }}
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px' }}>
-            Clear
+            title="Clear all measurements"
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <Eraser size={16} />
           </button>
           <span style={{ color: unitsPerPx ? '#10B981' : '#94A3B8', fontSize: '11px', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
             {unitsPerPx ? 'Scale set' : 'Not calibrated'}
