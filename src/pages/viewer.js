@@ -9,6 +9,7 @@ export default function PDFViewer() {
   const containerRef = useRef();
   const pageRootRef = useRef();
   const scrollTargetRef = useRef(null); // {x,y} in scale-1 coords to re-center after next render
+  const renderTaskRef = useRef(null); // in-progress PDF.js render task, so we can cancel stale renders
   const miniMapRef = useRef();
   const [pdf, setPdf] = useState(null);
   const [page, setPage] = useState(1);
@@ -78,11 +79,16 @@ export default function PDFViewer() {
   useEffect(() => {
     if (!pdf || !canvasRef.current) return;
     pdf.getPage(page).then(p => {
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
       const viewport = p.getViewport({ scale, rotation });
       const canvas = canvasRef.current;
       canvas.height = viewport.height;
       canvas.width = viewport.width;
-      p.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      const task = p.render({ canvasContext: canvas.getContext('2d'), viewport });
+      renderTaskRef.current = task;
+      task.promise.catch(err => { if (err?.name !== 'RenderingCancelledException') console.error(err); });
       if (scrollTargetRef.current && containerRef.current && canvasRef.current) {
         const { x, y } = scrollTargetRef.current;
         const c = containerRef.current;
