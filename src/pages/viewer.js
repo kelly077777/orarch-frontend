@@ -301,11 +301,16 @@ export default function PDFViewer() {
     setScale(+Math.max(0.25, Math.min(4, newScale)).toFixed(2));
   };
 
+  const wheelThrottleRef = useRef(0);
+
   const handleWheel = (e) => {
     if (!e.ctrlKey) return;
     e.preventDefault();
-    const step = e.deltaY < 0 ? 0.15 : -0.15;
-    changeScale(scale + step);
+    const now = Date.now();
+    if (now - wheelThrottleRef.current < 40) return; // throttle rapid wheel events
+    wheelThrottleRef.current = now;
+    const step = e.deltaY < 0 ? 0.05 : -0.05;
+    setScale(s => +Math.max(0.25, Math.min(4, s + step)).toFixed(2));
   };
 
   const zoomPrevious = () => {
