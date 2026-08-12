@@ -331,6 +331,16 @@ export default function PDFViewer() {
     setScale(s => +Math.max(0.25, Math.min(4, s + step)).toFixed(2));
   };
 
+  // React's onWheel prop registers as a passive listener, so preventDefault() inside it
+  // gets silently ignored by the browser (native page scroll still happens alongside our
+  // zoom). Attaching manually with { passive: false } lets us actually block native scroll.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel, { passive: false });
+  });
+
   const zoomPrevious = () => {
     setScaleHistory(h => {
       if (h.length === 0) return h;
@@ -703,7 +713,7 @@ export default function PDFViewer() {
       )}
 
       {/* PDF Canvas */}
-      <div ref={containerRef} onScroll={updateMiniMapViewport} onWheel={handleWheel} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px', position: 'relative' }}>
+      <div ref={containerRef} onScroll={updateMiniMapViewport} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px', position: 'relative' }}>
         {loading && (
           <div style={{ color: '#ccc', fontSize: '14px', marginTop: '40px' }}>Loading document...</div>
         )}
