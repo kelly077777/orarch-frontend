@@ -301,6 +301,13 @@ export default function PDFViewer() {
     setScale(+Math.max(0.25, Math.min(4, newScale)).toFixed(2));
   };
 
+  const handleWheel = (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const step = e.deltaY < 0 ? 0.15 : -0.15;
+    changeScale(scale + step);
+  };
+
   const zoomPrevious = () => {
     setScaleHistory(h => {
       if (h.length === 0) return h;
@@ -648,7 +655,7 @@ export default function PDFViewer() {
       )}
 
       {/* PDF Canvas */}
-      <div ref={containerRef} onScroll={updateMiniMapViewport} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px', position: 'relative' }}>
+      <div ref={containerRef} onScroll={updateMiniMapViewport} onWheel={handleWheel} style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px', position: 'relative' }}>
         {loading && (
           <div style={{ color: '#ccc', fontSize: '14px', marginTop: '40px' }}>Loading document...</div>
         )}
