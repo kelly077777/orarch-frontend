@@ -415,7 +415,16 @@ export default function PDFViewer() {
     return { x: canvasX / scale, y: canvasY / scale };
   };
 
+  const panStateRef = useRef(null); // {startClientX, startClientY, startScrollLeft, startScrollTop} while panning
+  const [isPanning, setIsPanning] = useState(false);
+
   const handleOverlayMouseMove = (e) => {
+    if (panStateRef.current && containerRef.current) {
+      const { startClientX, startClientY, startScrollLeft, startScrollTop } = panStateRef.current;
+      containerRef.current.scrollLeft = startScrollLeft - (e.clientX - startClientX);
+      containerRef.current.scrollTop = startScrollTop - (e.clientY - startClientY);
+      return;
+    }
     const rawPt = pointFromEvent(e);
     setCursorPos(rawPt);
     if (mode === 'zoomwindow' && dragRect) {
@@ -433,12 +442,28 @@ export default function PDFViewer() {
   };
 
   const handleOverlayMouseDown = (e) => {
-    if (mode !== 'zoomwindow') return;
-    const rawPt = pointFromEvent(e);
-    setDragRect({ startX: rawPt.x, startY: rawPt.y, curX: rawPt.x, curY: rawPt.y });
+    if (mode === 'zoomwindow') {
+      const rawPt = pointFromEvent(e);
+      setDragRect({ startX: rawPt.x, startY: rawPt.y, curX: rawPt.x, curY: rawPt.y });
+      return;
+    }
+    if (!mode && containerRef.current) {
+      panStateRef.current = {
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        startScrollLeft: containerRef.current.scrollLeft,
+        startScrollTop: containerRef.current.scrollTop,
+      };
+      setIsPanning(true);
+    }
   };
 
   const handleOverlayMouseUp = () => {
+    if (panStateRef.current) {
+      panStateRef.current = null;
+      setIsPanning(false);
+      return;
+    }
     if (mode !== 'zoomwindow' || !dragRect || !containerRef.current) { setDragRect(null); return; }
     const { startX, startY, curX, curY } = dragRect;
     const rectW = Math.abs(curX - startX);
@@ -673,7 +698,7 @@ export default function PDFViewer() {
         <div style={{ position: 'relative', display: loading ? 'none' : 'block', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
           <canvas ref={canvasRef} style={{ display: 'block' }} />
           <canvas ref={overlayRef} onClick={handleOverlayClick} onDoubleClick={() => { finishPolyline(); finishArea(); }} onMouseMove={handleOverlayMouseMove} onMouseLeave={handleOverlayMouseLeave} onMouseDown={handleOverlayMouseDown} onMouseUp={handleOverlayMouseUp}
-            style={{ position: 'absolute', top: 0, left: 0, cursor: snapHover ? 'pointer' : (mode ? 'crosshair' : 'default'), pointerEvents: 'auto' }} />
+            style={{ position: 'absolute', top: 0, left: 0, cursor: isPanning ? 'grabbing' : (snapHover ? 'pointer' : (mode ? 'crosshair' : 'grab')), pointerEvents: 'auto' }} />
           {cursorPos && (
             <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', color: '#10B981', fontSize: '11px', fontFamily: 'monospace', padding: '4px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
               X: {unitsPerPx ? (cursorPos.x * unitsPerPx).toFixed(2) : cursorPos.x.toFixed(1)}{unitsPerPx ? ` ${unit}` : 'px'}
