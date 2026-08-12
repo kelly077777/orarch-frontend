@@ -90,7 +90,7 @@ export default function PDFViewer() {
       renderTaskRef.current = task;
       task.promise.catch(err => { if (err?.name !== 'RenderingCancelledException') console.error(err); });
       if (scrollTargetRef.current && containerRef.current && canvasRef.current) {
-        const { x, y } = scrollTargetRef.current;
+        const { x, y, offsetX, offsetY } = scrollTargetRef.current;
         const c = containerRef.current;
         const canvasEl = canvasRef.current;
         // Use actual rendered positions (robust to the container's flex centering)
@@ -98,8 +98,10 @@ export default function PDFViewer() {
         const canvasRect = canvasEl.getBoundingClientRect();
         const canvasLeftInScroll = (canvasRect.left - containerRect.left) + c.scrollLeft;
         const canvasTopInScroll = (canvasRect.top - containerRect.top) + c.scrollTop;
-        c.scrollLeft = canvasLeftInScroll + (x * scale) - c.clientWidth / 2;
-        c.scrollTop = canvasTopInScroll + (y * scale) - c.clientHeight / 2;
+        const targetOffsetX = offsetX !== undefined ? offsetX : c.clientWidth / 2;
+        const targetOffsetY = offsetY !== undefined ? offsetY : c.clientHeight / 2;
+        c.scrollLeft = canvasLeftInScroll + (x * scale) - targetOffsetX;
+        c.scrollTop = canvasTopInScroll + (y * scale) - targetOffsetY;
         scrollTargetRef.current = null;
       }
       setTimeout(updateMiniMapViewport, 0);
@@ -316,6 +318,16 @@ export default function PDFViewer() {
     if (now - wheelThrottleRef.current < 40) return; // throttle rapid wheel events
     wheelThrottleRef.current = now;
     const step = e.deltaY < 0 ? 0.05 : -0.05;
+    if (containerRef.current) {
+      const rawPt = pointFromEvent(e);
+      const containerRect = containerRef.current.getBoundingClientRect();
+      scrollTargetRef.current = {
+        x: rawPt.x,
+        y: rawPt.y,
+        offsetX: e.clientX - containerRect.left,
+        offsetY: e.clientY - containerRect.top,
+      };
+    }
     setScale(s => +Math.max(0.25, Math.min(4, s + step)).toFixed(2));
   };
 
