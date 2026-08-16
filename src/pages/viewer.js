@@ -668,7 +668,7 @@ export default function PDFViewer() {
       
       {/* Toolbar */}
       <style jsx global>{`
-        .viewer-toolbar button:not(:disabled):hover { filter: brightness(1.3); }
+        .viewer-toolbar button:not(:disabled):hover { background-color: rgba(255,255,255,0.3) !important; }
       `}</style>
       <div className="viewer-toolbar" style={{ background: '#3c3f41', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, borderBottom: '1px solid #222', position: 'relative' }}>
         <button onClick={() => { if (docId && projectId) router.push('/projects/' + projectId + '?doc=' + docId); else router.back(); }}
