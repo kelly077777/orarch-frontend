@@ -667,7 +667,10 @@ export default function PDFViewer() {
     <div ref={pageRootRef} style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#525659', fontFamily: 'Arial, sans-serif' }}>
       
       {/* Toolbar */}
-      <div style={{ background: '#3c3f41', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, borderBottom: '1px solid #222', position: 'relative' }}>
+      <style jsx global>{`
+        .viewer-toolbar button:not(:disabled):hover { filter: brightness(1.3); }
+      `}</style>
+      <div className="viewer-toolbar" style={{ background: '#3c3f41', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, borderBottom: '1px solid #222', position: 'relative' }}>
         <button onClick={() => { if (docId && projectId) router.push('/projects/' + projectId + '?doc=' + docId); else router.back(); }}
           style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '20px', padding: '0 4px' }}>
           ←
@@ -748,14 +751,14 @@ export default function PDFViewer() {
                     {item.icon} {item.label}
                   </button>
                 ))}
-                <div style={{ height: '1px', background: '#555', margin: '4px 0' }} />
-                <button onClick={() => { setMeasurements([]); setPending([]); setMode(null); setOpenMenu(null); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#fff', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                  <Eraser size={16} /> Clear All
-                </button>
               </div>
             )}
           </div>
+          <button onClick={() => { setMeasurements([]); setPending([]); setMode(null); }}
+            title="Clear all measurements"
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <Eraser size={16} />
+          </button>
           <button onClick={() => setSnapEnabled(s => !s)}
             title={snapEnabled ? 'Snap: ON (click to disable)' : 'Snap: OFF (click to enable)'}
             style={{ background: snapEnabled ? '#10B981' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
