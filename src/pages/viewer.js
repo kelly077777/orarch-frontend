@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Maximize2, Expand, ScanSearch, RotateCcw, RotateCw, Maximize, Minimize, Ruler, SlidersHorizontal, Circle, CircleDot, Spline, LassoSelect, Eraser, Magnet } from 'lucide-react';
+import { Maximize2, Expand, ScanSearch, RotateCcw, RotateCw, Maximize, Minimize, Ruler, SlidersHorizontal, Circle, CircleDot, Spline, LassoSelect, Eraser, Magnet, Type, ArrowUpRight, Square, Pencil, Undo2, Redo2, PenTool } from 'lucide-react';
 
 export default function PDFViewer() {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function PDFViewer() {
   const [openMenu, setOpenMenu] = useState(null); // null | 'view' | 'measure'
   const viewMenuRef = useRef();
   const measureMenuRef = useRef();
+  const markupMenuRef = useRef();
   const renderTaskRef = useRef(null); // in-progress PDF.js render task, so we can cancel stale renders
   const miniMapRef = useRef();
   const [pdf, setPdf] = useState(null);
@@ -21,6 +22,10 @@ export default function PDFViewer() {
   const [rotation, setRotation] = useState(0);
   const [scaleHistory, setScaleHistory] = useState([]);
   const [dragRect, setDragRect] = useState(null); // {startX,startY,curX,curY} in scale-1 coords, while drag-zooming
+  const [markups, setMarkups] = useState([]); // {type, ...geometry, color}
+  const [markupRedoStack, setMarkupRedoStack] = useState([]);
+  const [freehandPath, setFreehandPath] = useState(null); // array of points while drawing freehand
+  const MARKUP_COLOR = '#DC2626';
   const [viewportRect, setViewportRect] = useState({ left: 0, top: 0, width: 0, height: 0 }); // mini-map indicator box, in mini-map px
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -319,7 +324,7 @@ export default function PDFViewer() {
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(snapHover.x*scale, snapHover.y*scale, 8, 0, Math.PI*2); ctx.stroke();
     }
-    if (dragRect) {
+    if (dragRect && mode === 'zoomwindow') {
       const x = Math.min(dragRect.startX, dragRect.curX) * scale;
       const y = Math.min(dragRect.startY, dragRect.curY) * scale;
       const w = Math.abs(dragRect.curX - dragRect.startX) * scale;
@@ -331,6 +336,63 @@ export default function PDFViewer() {
       ctx.setLineDash([]);
       ctx.fillStyle = 'rgba(37,99,235,0.1)';
       ctx.fillRect(x, y, w, h);
+    }
+
+    const drawArrow = (x1, y1, x2, y2, color) => {
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      const headLen = 12;
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headLen * Math.cos(ang - Math.PI / 6), y2 - headLen * Math.sin(ang - Math.PI / 6));
+      ctx.lineTo(x2 - headLen * Math.cos(ang + Math.PI / 6), y2 - headLen * Math.sin(ang + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    markups.forEach(m => {
+      if (m.type === 'rect') {
+        ctx.strokeStyle = m.color; ctx.lineWidth = 2;
+        ctx.strokeRect(Math.min(m.x1,m.x2)*scale, Math.min(m.y1,m.y2)*scale, Math.abs(m.x2-m.x1)*scale, Math.abs(m.y2-m.y1)*scale);
+      } else if (m.type === 'circle') {
+        const cx = (m.x1+m.x2)/2*scale, cy = (m.y1+m.y2)/2*scale;
+        const rx = Math.abs(m.x2-m.x1)/2*scale, ry = Math.abs(m.y2-m.y1)/2*scale;
+        ctx.strokeStyle = m.color; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.stroke();
+      } else if (m.type === 'arrow') {
+        drawArrow(m.x1*scale, m.y1*scale, m.x2*scale, m.y2*scale, m.color);
+      } else if (m.type === 'freehand') {
+        ctx.strokeStyle = m.color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.beginPath();
+        m.points.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x*scale, p.y*scale); else ctx.lineTo(p.x*scale, p.y*scale); });
+        ctx.stroke();
+      } else if (m.type === 'text') {
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = m.color;
+        ctx.textAlign = 'left';
+        ctx.fillText(m.text, m.x*scale, m.y*scale);
+      }
+    });
+
+    if (dragRect && mode === 'markup-rect') {
+      ctx.strokeStyle = MARKUP_COLOR; ctx.lineWidth = 2;
+      ctx.strokeRect(Math.min(dragRect.startX,dragRect.curX)*scale, Math.min(dragRect.startY,dragRect.curY)*scale, Math.abs(dragRect.curX-dragRect.startX)*scale, Math.abs(dragRect.curY-dragRect.startY)*scale);
+    }
+    if (dragRect && mode === 'markup-circle') {
+      const cx = (dragRect.startX+dragRect.curX)/2*scale, cy = (dragRect.startY+dragRect.curY)/2*scale;
+      const rx = Math.abs(dragRect.curX-dragRect.startX)/2*scale, ry = Math.abs(dragRect.curY-dragRect.startY)/2*scale;
+      ctx.strokeStyle = MARKUP_COLOR; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.stroke();
+    }
+    if (dragRect && mode === 'markup-arrow') {
+      drawArrow(dragRect.startX*scale, dragRect.startY*scale, dragRect.curX*scale, dragRect.curY*scale, MARKUP_COLOR);
+    }
+    if (freehandPath && freehandPath.length > 0) {
+      ctx.strokeStyle = MARKUP_COLOR; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.beginPath();
+      freehandPath.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x*scale, p.y*scale); else ctx.lineTo(p.x*scale, p.y*scale); });
+      ctx.stroke();
     }
   };
 
@@ -347,6 +409,7 @@ export default function PDFViewer() {
     const handleClickOutside = (e) => {
       if (openMenu === 'view' && viewMenuRef.current && !viewMenuRef.current.contains(e.target)) setOpenMenu(null);
       if (openMenu === 'measure' && measureMenuRef.current && !measureMenuRef.current.contains(e.target)) setOpenMenu(null);
+      if (openMenu === 'markup' && markupMenuRef.current && !markupMenuRef.current.contains(e.target)) setOpenMenu(null);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -557,8 +620,47 @@ export default function PDFViewer() {
     setSnapHover(null);
   };
 
+  const MARKUP_MODES = ['markup-rect', 'markup-circle', 'markup-arrow', 'markup-freehand'];
+
+  const addMarkup = (m) => {
+    setMarkups(ms => [...ms, m]);
+    setMarkupRedoStack([]);
+  };
+
+  const undoMarkup = () => {
+    setMarkups(ms => {
+      if (ms.length === 0) return ms;
+      setMarkupRedoStack(r => [...r, ms[ms.length - 1]]);
+      return ms.slice(0, -1);
+    });
+  };
+
+  const redoMarkup = () => {
+    setMarkupRedoStack(r => {
+      if (r.length === 0) return r;
+      setMarkups(ms => [...ms, r[r.length - 1]]);
+      return r.slice(0, -1);
+    });
+  };
+
   const handleOverlayMouseDown = (e) => {
     if (mode === 'zoomwindow') {
+      const rawPt = pointFromEvent(e);
+      setDragRect({ startX: rawPt.x, startY: rawPt.y, curX: rawPt.x, curY: rawPt.y });
+      return;
+    }
+    if (mode === 'markup-text') {
+      const rawPt = pointFromEvent(e);
+      const text = window.prompt('Enter text:');
+      if (text) addMarkup({ type: 'text', x: rawPt.x, y: rawPt.y, text, color: MARKUP_COLOR });
+      return;
+    }
+    if (mode === 'markup-freehand') {
+      const rawPt = pointFromEvent(e);
+      setFreehandPath([rawPt]);
+      return;
+    }
+    if (MARKUP_MODES.includes(mode)) {
       const rawPt = pointFromEvent(e);
       setDragRect({ startX: rawPt.x, startY: rawPt.y, curX: rawPt.x, curY: rawPt.y });
       return;
@@ -578,6 +680,20 @@ export default function PDFViewer() {
     if (panStateRef.current) {
       panStateRef.current = null;
       setIsPanning(false);
+      return;
+    }
+    if (mode === 'markup-freehand' && freehandPath) {
+      if (freehandPath.length > 1) addMarkup({ type: 'freehand', points: freehandPath, color: MARKUP_COLOR });
+      setFreehandPath(null);
+      return;
+    }
+    if (MARKUP_MODES.includes(mode) && dragRect) {
+      const { startX, startY, curX, curY } = dragRect;
+      setDragRect(null);
+      if (Math.abs(curX - startX) < 3 && Math.abs(curY - startY) < 3) return;
+      if (mode === 'markup-rect') addMarkup({ type: 'rect', x1: startX, y1: startY, x2: curX, y2: curY, color: MARKUP_COLOR });
+      if (mode === 'markup-circle') addMarkup({ type: 'circle', x1: startX, y1: startY, x2: curX, y2: curY, color: MARKUP_COLOR });
+      if (mode === 'markup-arrow') addMarkup({ type: 'arrow', x1: startX, y1: startY, x2: curX, y2: curY, color: MARKUP_COLOR });
       return;
     }
     if (mode !== 'zoomwindow' || !dragRect || !containerRef.current) { setDragRect(null); return; }
@@ -789,6 +905,41 @@ export default function PDFViewer() {
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
             <Eraser size={16} />
           </button>
+          <div ref={markupMenuRef} style={{ position: 'relative' }}>
+            <button onClick={() => setOpenMenu(m => m === 'markup' ? null : 'markup')}
+              style={{ background: openMenu === 'markup' || (mode && mode.startsWith('markup-')) ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+              <PenTool size={16} /> Markup <span style={{ fontSize: '9px' }}>▾</span>
+            </button>
+            {openMenu === 'markup' && (
+              <div style={{ position: 'absolute', top: '110%', left: 0, background: '#2d2f31', border: '1px solid #555', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', padding: '6px', zIndex: 20, minWidth: '190px' }}>
+                {[
+                  { icon: <Type size={16} />, label: 'Text', modeKey: 'markup-text' },
+                  { icon: <ArrowUpRight size={16} />, label: 'Arrow', modeKey: 'markup-arrow' },
+                  { icon: <Square size={16} />, label: 'Rectangle', modeKey: 'markup-rect' },
+                  { icon: <Circle size={16} />, label: 'Circle', modeKey: 'markup-circle' },
+                  { icon: <Pencil size={16} />, label: 'Freehand', modeKey: 'markup-freehand' },
+                ].map((item, i) => (
+                  <button key={i} onClick={() => { setMode(mode === item.modeKey ? null : item.modeKey); setPending([]); setOpenMenu(null); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: mode === item.modeKey ? '#2563EB' : 'transparent', border: 'none', color: '#fff', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                    {item.icon} {item.label}
+                  </button>
+                ))}
+                <div style={{ height: '1px', background: '#555', margin: '4px 0' }} />
+                <button onClick={() => { undoMarkup(); setOpenMenu(null); }} disabled={markups.length === 0}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: markups.length === 0 ? '#666' : '#fff', padding: '8px 10px', borderRadius: '6px', cursor: markups.length === 0 ? 'default' : 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                  <Undo2 size={16} /> Undo
+                </button>
+                <button onClick={() => { redoMarkup(); setOpenMenu(null); }} disabled={markupRedoStack.length === 0}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: markupRedoStack.length === 0 ? '#666' : '#fff', padding: '8px 10px', borderRadius: '6px', cursor: markupRedoStack.length === 0 ? 'default' : 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                  <Redo2 size={16} /> Redo
+                </button>
+                <button onClick={() => { setMarkups([]); setMarkupRedoStack([]); setOpenMenu(null); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#fff', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                  <Eraser size={16} /> Clear Markup
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={() => setSnapEnabled(s => !s)}
             title={snapEnabled ? 'Snap: ON (click to disable)' : 'Snap: OFF (click to enable)'}
             style={{ background: snapEnabled ? '#10B981' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
