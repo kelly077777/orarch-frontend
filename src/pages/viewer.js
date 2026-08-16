@@ -9,6 +9,9 @@ export default function PDFViewer() {
   const containerRef = useRef();
   const pageRootRef = useRef();
   const scrollTargetRef = useRef(null); // {x,y} in scale-1 coords to re-center after next render
+  const [openMenu, setOpenMenu] = useState(null); // null | 'view' | 'measure'
+  const viewMenuRef = useRef();
+  const measureMenuRef = useRef();
   const renderTaskRef = useRef(null); // in-progress PDF.js render task, so we can cancel stale renders
   const miniMapRef = useRef();
   const [pdf, setPdf] = useState(null);
@@ -445,9 +448,6 @@ export default function PDFViewer() {
 
   const SNAP_RADIUS_PX = 10; // canvas pixels at current zoom
   const [snapEnabled, setSnapEnabled] = useState(true);
-  const [openMenu, setOpenMenu] = useState(null); // null | 'view' | 'measure'
-  const viewMenuRef = useRef();
-  const measureMenuRef = useRef();
 
   const findNearestCandidate = (pt) => {
     if (!snapEnabled) return null;
