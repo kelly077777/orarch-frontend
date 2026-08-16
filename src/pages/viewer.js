@@ -262,9 +262,35 @@ export default function PDFViewer() {
       }
     };
 
+    const drawAngle = (pts, label, color) => {
+      const [a, v, b] = pts;
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(v.x*scale, v.y*scale); ctx.lineTo(a.x*scale, a.y*scale); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(v.x*scale, v.y*scale); ctx.lineTo(b.x*scale, b.y*scale); ctx.stroke();
+      [a, v, b].forEach(pt => { ctx.beginPath(); ctx.arc(pt.x*scale, pt.y*scale, 4, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); });
+      if (label) {
+        const angA = Math.atan2(a.y - v.y, a.x - v.x);
+        const angB = Math.atan2(b.y - v.y, b.x - v.x);
+        const midAng = (angA + angB) / 2;
+        const r = 30;
+        const mx = v.x*scale + Math.cos(midAng) * r;
+        const my = v.y*scale + Math.sin(midAng) * r;
+        ctx.font = 'bold 13px Arial';
+        const w = ctx.measureText(label).width + 10;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fillRect(mx - w/2, my - 10, w, 20);
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.strokeRect(mx - w/2, my - 10, w, 20);
+        ctx.fillStyle = '#111';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, mx, my + 4);
+      }
+    };
+
     measurements.forEach(m => {
       if (m.isArea) drawPolygon(m.points, m.label, '#EF4444', true);
       else if (m.isRadius || m.isDiameter) drawCircle({x:m.x1,y:m.y1}, {x:m.x2,y:m.y2}, m.label, '#EF4444');
+      else if (m.isAngle) drawAngle(m.points, m.label, '#EF4444');
       else if (m.points) drawPolyline(m.points, m.label, '#EF4444');
       else drawSeg({x:m.x1,y:m.y1}, {x:m.x2,y:m.y2}, m.label, '#EF4444');
     });
@@ -273,6 +299,9 @@ export default function PDFViewer() {
     }
     if (mode === 'area' && pending.length > 0) {
       drawPolygon(pending, null, '#2563EB', pending.length > 2);
+    }
+    if (mode === 'angle' && pending.length === 2) {
+      drawAngle([pending[0], pending[1], pending[1]], null, '#2563EB');
     }
     if ((mode === 'radius' || mode === 'diameter') && pending.length === 1) {
       // live preview handled by the generic single-point marker below
@@ -540,6 +569,24 @@ export default function PDFViewer() {
       setPending(p => [...p, pt]);
       return;
     }
+    if (mode === 'angle') {
+      if (pending.length === 2) {
+        const pts = [...pending, pt]; // [pointA, vertex, pointB]
+        const [a, v, b] = pts;
+        const v1 = { x: a.x - v.x, y: a.y - v.y };
+        const v2 = { x: b.x - v.x, y: b.y - v.y };
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        const mag1 = Math.hypot(v1.x, v1.y);
+        const mag2 = Math.hypot(v2.x, v2.y);
+        const angleDeg = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * 180 / Math.PI;
+        const label = `${angleDeg.toFixed(1)}°`;
+        setMeasurements(ms => [...ms, { points: pts, label, isAngle: true }]);
+        setPending([]);
+        return;
+      }
+      setPending(p => [...p, pt]);
+      return;
+    }
     const next = [...pending, pt];
 
     if (next.length < 2) { setPending(next); return; }
@@ -650,6 +697,11 @@ export default function PDFViewer() {
             title="Radius: click center point, then edge point"
             style={{ background: mode === 'radius' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
             <CircleDot size={16} />
+          </button>
+          <button onClick={() => { setMode(mode === 'angle' ? null : 'angle'); setPending([]); }}
+            title="Angle: click first point, then vertex, then second point"
+            style={{ background: mode === 'angle' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20 L20 20 M4 20 L18 6"/><path d="M10 20 A6 6 0 0 1 12.5 15"/></svg>
           </button>
           <button onClick={() => { setMode(mode === 'diameter' ? null : 'diameter'); setPending([]); }}
             title="Diameter: click one edge point, then the opposite edge point"
