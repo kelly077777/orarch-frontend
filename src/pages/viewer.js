@@ -317,7 +317,7 @@ export default function PDFViewer() {
     const now = Date.now();
     if (now - wheelThrottleRef.current < 40) return; // throttle rapid wheel events
     wheelThrottleRef.current = now;
-    const step = e.deltaY < 0 ? 0.03 : -0.03;
+    const step = e.deltaY < 0 ? 0.15 : -0.15;
     if (containerRef.current) {
       const rawPt = pointFromEvent(e);
       const containerRect = containerRef.current.getBoundingClientRect();
