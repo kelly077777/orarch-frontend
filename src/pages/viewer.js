@@ -606,8 +606,12 @@ export default function PDFViewer() {
     }
     const rawPt = pointFromEvent(e);
     setCursorPos(rawPt);
-    if (mode === 'zoomwindow' && dragRect) {
+    if ((mode === 'zoomwindow' || MARKUP_MODES.includes(mode)) && dragRect) {
       setDragRect(r => ({ ...r, curX: rawPt.x, curY: rawPt.y }));
+      return;
+    }
+    if (mode === 'markup-freehand' && freehandPath) {
+      setFreehandPath(p => [...p, rawPt]);
       return;
     }
     if (!mode) { if (snapHover) setSnapHover(null); return; }
