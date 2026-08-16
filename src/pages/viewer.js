@@ -340,6 +340,15 @@ export default function PDFViewer() {
 
   const wheelThrottleRef = useRef(0);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (openMenu === 'view' && viewMenuRef.current && !viewMenuRef.current.contains(e.target)) setOpenMenu(null);
+      if (openMenu === 'measure' && measureMenuRef.current && !measureMenuRef.current.contains(e.target)) setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenu]);
+
   const handleWheel = (e) => {
     if (!e.ctrlKey) return;
     e.preventDefault();
@@ -436,6 +445,9 @@ export default function PDFViewer() {
 
   const SNAP_RADIUS_PX = 10; // canvas pixels at current zoom
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [openMenu, setOpenMenu] = useState(null); // null | 'view' | 'measure'
+  const viewMenuRef = useRef();
+  const measureMenuRef = useRef();
 
   const findNearestCandidate = (pt) => {
     if (!snapEnabled) return null;
@@ -682,20 +694,29 @@ export default function PDFViewer() {
           <span style={{ color: '#ccc', fontSize: '13px', minWidth: '48px', textAlign: 'center' }}>{Math.round(scale * 100)}%</span>
           <button onClick={() => changeScale(scale + 0.25)}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '16px' }}>+</button>
-          <button onClick={fitToScreen} title="Fit drawing to screen"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><Maximize2 size={16} /></button>
-          <button onClick={fitToScreen} title="Zoom to full drawing extents"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><Expand size={16} /></button>
-          <button onClick={() => { setMode(mode === 'zoomwindow' ? null : 'zoomwindow'); setPending([]); }} title="Zoom Window: drag a rectangle to zoom into"
-            style={{ background: mode === 'zoomwindow' ? '#F59E0B' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><ScanSearch size={16} /></button>
-          <button onClick={zoomPrevious} disabled={scaleHistory.length === 0} title="Zoom to previous view"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: scaleHistory.length === 0 ? '#666' : '#fff', borderRadius: '4px', padding: '6px', cursor: scaleHistory.length === 0 ? 'default' : 'pointer', display: 'flex' }}><RotateCcw size={16} /></button>
-          <button onClick={rotateDrawing} title="Rotate drawing 90°"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}><RotateCw size={16} /></button>
-          <button onClick={toggleFullscreen} title={isFullscreen ? 'Exit full screen' : 'Full screen'}
-            style={{ background: isFullscreen ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-          </button>
+          <div ref={viewMenuRef} style={{ position: 'relative' }}>
+            <button onClick={() => setOpenMenu(m => m === 'view' ? null : 'view')}
+              style={{ background: openMenu === 'view' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+              <Expand size={16} /> View <span style={{ fontSize: '9px' }}>▾</span>
+            </button>
+            {openMenu === 'view' && (
+              <div style={{ position: 'absolute', top: '110%', left: 0, background: '#2d2f31', border: '1px solid #555', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', padding: '6px', zIndex: 20, minWidth: '190px' }}>
+                {[
+                  { icon: <Maximize2 size={16} />, label: 'Fit to Screen', onClick: fitToScreen },
+                  { icon: <Expand size={16} />, label: 'Zoom Extents', onClick: fitToScreen },
+                  { icon: <ScanSearch size={16} />, label: 'Zoom Window', onClick: () => { setMode(mode === 'zoomwindow' ? null : 'zoomwindow'); setPending([]); }, active: mode === 'zoomwindow' },
+                  { icon: <RotateCcw size={16} />, label: 'Zoom Previous', onClick: zoomPrevious, disabled: scaleHistory.length === 0 },
+                  { icon: <RotateCw size={16} />, label: 'Rotate Drawing', onClick: rotateDrawing },
+                  { icon: isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />, label: isFullscreen ? 'Exit Full Screen' : 'Full Screen', onClick: toggleFullscreen },
+                ].map((item, i) => (
+                  <button key={i} onClick={() => { if (!item.disabled) { item.onClick(); setOpenMenu(null); } }} disabled={item.disabled}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: item.active ? '#F59E0B' : 'transparent', border: 'none', color: item.disabled ? '#666' : '#fff', padding: '8px 10px', borderRadius: '6px', cursor: item.disabled ? 'default' : 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                    {item.icon} {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Measurement tools */}
@@ -706,46 +727,35 @@ export default function PDFViewer() {
             <option value="cm">cm</option>
             <option value="mm">mm</option>
           </select>
-          <button onClick={() => { setMode(mode === 'calibrate' ? null : 'calibrate'); setPending([]); }}
-            title="Calibrate: click two points on a line of known length, then enter its real length"
-            style={{ background: mode === 'calibrate' ? '#F59E0B' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <SlidersHorizontal size={16} />
-          </button>
-          <button onClick={() => { setMode(mode === 'measure' ? null : 'measure'); setPending([]); }}
-            title="Measure: click two points to measure the distance"
-            style={{ background: mode === 'measure' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <Ruler size={16} />
-          </button>
-          <button onClick={() => { setMode(mode === 'radius' ? null : 'radius'); setPending([]); }}
-            title="Radius: click center point, then edge point"
-            style={{ background: mode === 'radius' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <CircleDot size={16} />
-          </button>
-          <button onClick={() => { setMode(mode === 'angle' ? null : 'angle'); setPending([]); }}
-            title="Angle: click first point, then vertex, then second point"
-            style={{ background: mode === 'angle' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20 L20 20 M4 20 L18 6"/><path d="M10 20 A6 6 0 0 1 12.5 15"/></svg>
-          </button>
-          <button onClick={() => { setMode(mode === 'diameter' ? null : 'diameter'); setPending([]); }}
-            title="Diameter: click one edge point, then the opposite edge point"
-            style={{ background: mode === 'diameter' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <Circle size={16} />
-          </button>
-          <button onClick={() => { setMode(mode === 'polyline' ? null : 'polyline'); setPending([]); }}
-            title="Polyline: click multiple points, double-click to finish"
-            style={{ background: mode === 'polyline' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <Spline size={16} />
-          </button>
-          <button onClick={() => { setMode(mode === 'area' ? null : 'area'); setPending([]); }}
-            title="Area: click points around an area, double-click to close and calculate"
-            style={{ background: mode === 'area' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <LassoSelect size={16} />
-          </button>
-          <button onClick={() => { setMeasurements([]); setPending([]); setMode(null); }}
-            title="Clear all measurements"
-            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
-            <Eraser size={16} />
-          </button>
+          <div ref={measureMenuRef} style={{ position: 'relative' }}>
+            <button onClick={() => setOpenMenu(m => m === 'measure' ? null : 'measure')}
+              style={{ background: openMenu === 'measure' || mode === 'calibrate' || mode === 'measure' || mode === 'radius' || mode === 'diameter' || mode === 'polyline' || mode === 'area' || mode === 'angle' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+              <Ruler size={16} /> Measure <span style={{ fontSize: '9px' }}>▾</span>
+            </button>
+            {openMenu === 'measure' && (
+              <div style={{ position: 'absolute', top: '110%', left: 0, background: '#2d2f31', border: '1px solid #555', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', padding: '6px', zIndex: 20, minWidth: '210px' }}>
+                {[
+                  { icon: <SlidersHorizontal size={16} />, label: 'Calibrate', modeKey: 'calibrate' },
+                  { icon: <Ruler size={16} />, label: 'Distance', modeKey: 'measure' },
+                  { icon: <Spline size={16} />, label: 'Polyline Distance', modeKey: 'polyline' },
+                  { icon: <LassoSelect size={16} />, label: 'Area', modeKey: 'area' },
+                  { icon: <CircleDot size={16} />, label: 'Radius', modeKey: 'radius' },
+                  { icon: <Circle size={16} />, label: 'Diameter', modeKey: 'diameter' },
+                  { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20 L20 20 M4 20 L18 6"/><path d="M10 20 A6 6 0 0 1 12.5 15"/></svg>, label: 'Angle', modeKey: 'angle' },
+                ].map((item, i) => (
+                  <button key={i} onClick={() => { setMode(mode === item.modeKey ? null : item.modeKey); setPending([]); setOpenMenu(null); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: mode === item.modeKey ? (item.modeKey === 'calibrate' ? '#F59E0B' : '#2563EB') : 'transparent', border: 'none', color: '#fff', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                    {item.icon} {item.label}
+                  </button>
+                ))}
+                <div style={{ height: '1px', background: '#555', margin: '4px 0' }} />
+                <button onClick={() => { setMeasurements([]); setPending([]); setMode(null); setOpenMenu(null); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#fff', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                  <Eraser size={16} /> Clear All
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={() => setSnapEnabled(s => !s)}
             title={snapEnabled ? 'Snap: ON (click to disable)' : 'Snap: OFF (click to enable)'}
             style={{ background: snapEnabled ? '#10B981' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
