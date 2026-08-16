@@ -449,6 +449,29 @@ export default function PDFViewer() {
   const SNAP_RADIUS_PX = 10; // canvas pixels at current zoom
   const [snapEnabled, setSnapEnabled] = useState(true);
 
+  const lineIntersection = (a1, a2, b1, b2) => {
+    const d1x = a2.x - a1.x, d1y = a2.y - a1.y;
+    const d2x = b2.x - b1.x, d2y = b2.y - b1.y;
+    const denom = d1x * d2y - d1y * d2x;
+    if (Math.abs(denom) < 1e-9) return null; // parallel
+    const t = ((b1.x - a1.x) * d2y - (b1.y - a1.y) * d2x) / denom;
+    const u = ((b1.x - a1.x) * d1y - (b1.y - a1.y) * d1x) / denom;
+    if (t < 0 || t > 1 || u < 0 || u > 1) return null; // outside segment bounds
+    return { x: a1.x + t * d1x, y: a1.y + t * d1y };
+  };
+
+  const getAllSegments = () => {
+    const segs = [];
+    measurements.forEach(m => {
+      if (m.points) {
+        for (let i = 1; i < m.points.length; i++) segs.push([m.points[i - 1], m.points[i]]);
+      } else if (m.x1 !== undefined && !m.isRadius && !m.isDiameter) {
+        segs.push([{ x: m.x1, y: m.y1 }, { x: m.x2, y: m.y2 }]);
+      }
+    });
+    return segs;
+  };
+
   const findNearestCandidate = (pt) => {
     if (!snapEnabled) return null;
     const candidates = [];
@@ -467,6 +490,13 @@ export default function PDFViewer() {
         candidates.push({ x: (m.x1 + m.x2) / 2, y: (m.y1 + m.y2) / 2 });
       }
     });
+    const segs = getAllSegments();
+    for (let i = 0; i < segs.length; i++) {
+      for (let j = i + 1; j < segs.length; j++) {
+        const ix = lineIntersection(segs[i][0], segs[i][1], segs[j][0], segs[j][1]);
+        if (ix) candidates.push(ix);
+      }
+    }
     let nearest = null;
     let nearestDist = Infinity;
     candidates.forEach(c => {
