@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Maximize2, Expand, ScanSearch, RotateCcw, RotateCw, Maximize, Minimize, Ruler, SlidersHorizontal, Circle, CircleDot, Spline, LassoSelect, Eraser } from 'lucide-react';
+import { Maximize2, Expand, ScanSearch, RotateCcw, RotateCw, Maximize, Minimize, Ruler, SlidersHorizontal, Circle, CircleDot, Spline, LassoSelect, Eraser, Magnet } from 'lucide-react';
 
 export default function PDFViewer() {
   const router = useRouter();
@@ -435,12 +435,25 @@ export default function PDFViewer() {
   };
 
   const SNAP_RADIUS_PX = 10; // canvas pixels at current zoom
+  const [snapEnabled, setSnapEnabled] = useState(true);
 
   const findNearestCandidate = (pt) => {
+    if (!snapEnabled) return null;
     const candidates = [];
     measurements.forEach(m => {
-      candidates.push({ x: m.x1, y: m.y1 });
-      candidates.push({ x: m.x2, y: m.y2 });
+      if (m.points) {
+        m.points.forEach((p, i) => {
+          candidates.push(p);
+          if (i > 0) {
+            const prev = m.points[i - 1];
+            candidates.push({ x: (prev.x + p.x) / 2, y: (prev.y + p.y) / 2 });
+          }
+        });
+      } else if (m.x1 !== undefined) {
+        candidates.push({ x: m.x1, y: m.y1 });
+        candidates.push({ x: m.x2, y: m.y2 });
+        candidates.push({ x: (m.x1 + m.x2) / 2, y: (m.y1 + m.y2) / 2 });
+      }
     });
     let nearest = null;
     let nearestDist = Infinity;
@@ -451,7 +464,17 @@ export default function PDFViewer() {
         nearestDist = d;
       }
     });
-    return nearest;
+    if (nearest) return nearest;
+    // Grid snap fallback: snap to nearest 0.5-unit grid intersection when calibrated
+    if (unitsPerPx) {
+      const gridStepPx = 0.5 / unitsPerPx; // 0.5 real-world units, in scale-1 px
+      const gx = Math.round(pt.x / gridStepPx) * gridStepPx;
+      const gy = Math.round(pt.y / gridStepPx) * gridStepPx;
+      const gridPt = { x: gx, y: gy };
+      const gd = dist(pt, gridPt) * scale;
+      if (gd < SNAP_RADIUS_PX) return gridPt;
+    }
+    return null;
   };
 
   const snapToNearbyPoint = (pt) => findNearestCandidate(pt) || pt;
@@ -722,6 +745,11 @@ export default function PDFViewer() {
             title="Clear all measurements"
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
             <Eraser size={16} />
+          </button>
+          <button onClick={() => setSnapEnabled(s => !s)}
+            title={snapEnabled ? 'Snap: ON (click to disable)' : 'Snap: OFF (click to enable)'}
+            style={{ background: snapEnabled ? '#10B981' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
+            <Magnet size={16} />
           </button>
           <span style={{ color: unitsPerPx ? '#10B981' : '#94A3B8', fontSize: '11px', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
             {unitsPerPx ? 'Scale set' : 'Not calibrated'}
