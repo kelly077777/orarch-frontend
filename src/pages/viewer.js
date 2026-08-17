@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Maximize2, Expand, ScanSearch, RotateCcw, RotateCw, Maximize, Minimize, Ruler, SlidersHorizontal, Circle, CircleDot, Spline, LassoSelect, Eraser, Magnet, Type, ArrowUpRight, Square, Pencil, Undo2, Redo2, PenTool } from 'lucide-react';
+import { Maximize2, Expand, ScanSearch, RotateCcw, RotateCw, Maximize, Minimize, Ruler, SlidersHorizontal, Circle, CircleDot, Spline, LassoSelect, Eraser, Magnet, Type, ArrowUpRight, Square, Pencil, Undo2, Redo2, PenTool, MapPin, X } from 'lucide-react';
 
 export default function PDFViewer() {
   const router = useRouter();
@@ -23,6 +23,9 @@ export default function PDFViewer() {
   const [scaleHistory, setScaleHistory] = useState([]);
   const [dragRect, setDragRect] = useState(null); // {startX,startY,curX,curY} in scale-1 coords, while drag-zooming
   const [markups, setMarkups] = useState([]); // {type, ...geometry, color}
+  const [observations, setObservations] = useState([]);
+  const [obsPanel, setObsPanel] = useState(null); // {x,y, ...form fields} when creating/editing
+  const [activeObsId, setActiveObsId] = useState(null);
   const [markupRedoStack, setMarkupRedoStack] = useState([]);
   const [freehandPath, setFreehandPath] = useState(null); // array of points while drawing freehand
   const MARKUP_COLOR = '#DC2626';
@@ -55,6 +58,17 @@ export default function PDFViewer() {
         }
       })
       .catch(e => console.error('Failed to load calibration:', e));
+  }, [docId]);
+
+  // Load existing observations for this document
+  useEffect(() => {
+    if (!docId) return;
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('orarch_token') : null;
+    fetch(`${BASE_URL}/observations?documentId=${docId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(list => setObservations(list || []))
+      .catch(e => console.error('Failed to load observations:', e));
   }, [docId]);
 
   useEffect(() => {
@@ -375,6 +389,35 @@ export default function PDFViewer() {
       }
     });
 
+    observations.forEach(o => {
+      const px = o.x*scale, py = o.y*scale;
+      const color = PRIORITY_COLORS[o.priority] || '#2563EB';
+      ctx.beginPath();
+      ctx.arc(px, py - 10, 10, 0, Math.PI*2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(px - 6, py - 2);
+      ctx.lineTo(px, py + 8);
+      ctx.lineTo(px + 6, py - 2);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('!', px, py - 6);
+    });
+    if (obsPanel) {
+      const px = obsPanel.x*scale, py = obsPanel.y*scale;
+      ctx.beginPath();
+      ctx.arc(px, py - 10, 10, 0, Math.PI*2);
+      ctx.fillStyle = '#2563EB';
+      ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    }
+
     if (dragRect && mode === 'markup-rect') {
       ctx.strokeStyle = MARKUP_COLOR; ctx.lineWidth = 2;
       ctx.strokeRect(Math.min(dragRect.startX,dragRect.curX)*scale, Math.min(dragRect.startY,dragRect.curY)*scale, Math.abs(dragRect.curX-dragRect.startX)*scale, Math.abs(dragRect.curY-dragRect.startY)*scale);
@@ -647,6 +690,46 @@ export default function PDFViewer() {
     });
   };
 
+  const saveObservation = async () => {
+    if (!obsPanel || !obsPanel.title) { alert('Title is required.'); return; }
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    const token = localStorage.getItem('orarch_token');
+    try {
+      const resp = await fetch(`${BASE_URL}/observations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          documentId: docId,
+          projectId: projectId || null,
+          x: obsPanel.x,
+          y: obsPanel.y,
+          title: obsPanel.title,
+          description: obsPanel.description,
+          priority: obsPanel.priority,
+          trade: obsPanel.trade,
+          status: obsPanel.status,
+          deadline: obsPanel.deadline || null,
+          responsibleCompany: obsPanel.responsibleCompany,
+          apartment: obsPanel.apartment,
+          floor: obsPanel.floor,
+          category: obsPanel.category,
+        }),
+      });
+      if (resp.ok) {
+        const saved = await resp.json();
+        setObservations(list => [...list, saved]);
+        setObsPanel(null);
+      } else {
+        alert('Failed to save observation.');
+      }
+    } catch (e) {
+      console.error('Failed to save observation:', e);
+      alert('Failed to save observation.');
+    }
+  };
+
+  const PRIORITY_COLORS = { LOW: '#10B981', MEDIUM: '#F59E0B', HIGH: '#EF4444', CRITICAL: '#991B1B' };
+
   const handleOverlayMouseDown = (e) => {
     if (mode === 'zoomwindow') {
       const rawPt = pointFromEvent(e);
@@ -662,6 +745,12 @@ export default function PDFViewer() {
     if (mode === 'markup-freehand') {
       const rawPt = pointFromEvent(e);
       setFreehandPath([rawPt]);
+      return;
+    }
+    if (mode === 'observation') {
+      const rawPt = pointFromEvent(e);
+      setObsPanel({ x: rawPt.x, y: rawPt.y, title: '', description: '', priority: 'MEDIUM', trade: '', status: 'OPEN', deadline: '', responsibleCompany: '', apartment: '', floor: '', category: '' });
+      setMode(null);
       return;
     }
     if (MARKUP_MODES.includes(mode)) {
@@ -949,6 +1038,11 @@ export default function PDFViewer() {
             style={{ background: snapEnabled ? '#10B981' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px', cursor: 'pointer', display: 'flex' }}>
             <Magnet size={16} />
           </button>
+          <button onClick={() => { setMode(mode === 'observation' ? null : 'observation'); }}
+            title="Observation: click on the drawing to create an observation pin"
+            style={{ background: mode === 'observation' ? '#2563EB' : 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+            <MapPin size={16} /> Observation
+          </button>
           <span style={{ color: unitsPerPx ? '#10B981' : '#94A3B8', fontSize: '11px', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
             {unitsPerPx ? 'Scale set' : 'Not calibrated'}
           </span>
@@ -986,6 +1080,60 @@ export default function PDFViewer() {
               <button onClick={applyCalibration}
                 style={{ padding: '9px 20px', border: 'none', borderRadius: '8px', background: '#2563EB', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Set scale</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {obsPanel && (
+        <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '320px', background: '#2d2f31', borderLeft: '1px solid #555', boxShadow: '-4px 0 16px rgba(0,0,0,0.4)', zIndex: 40, padding: '16px', overflowY: 'auto', color: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0, fontSize: '15px' }}>New Observation</h3>
+            <button onClick={() => setObsPanel(null)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}><X size={18} /></button>
+          </div>
+          {[
+            { key: 'title', label: 'Title *', type: 'text' },
+            { key: 'description', label: 'Description', type: 'textarea' },
+            { key: 'trade', label: 'Trade', type: 'text' },
+            { key: 'responsibleCompany', label: 'Responsible Company', type: 'text' },
+            { key: 'apartment', label: 'Apartment', type: 'text' },
+            { key: 'floor', label: 'Floor', type: 'text' },
+            { key: 'category', label: 'Category', type: 'text' },
+            { key: 'deadline', label: 'Deadline', type: 'date' },
+          ].map(f => (
+            <div key={f.key} style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '4px' }}>{f.label}</label>
+              {f.type === 'textarea' ? (
+                <textarea value={obsPanel[f.key]} onChange={e => setObsPanel(p => ({ ...p, [f.key]: e.target.value }))}
+                  rows={3} style={{ width: '100%', background: '#1e1f21', color: '#fff', border: '1px solid #555', borderRadius: '4px', padding: '6px', fontSize: '13px', boxSizing: 'border-box' }} />
+              ) : (
+                <input type={f.type} value={obsPanel[f.key]} onChange={e => setObsPanel(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width: '100%', background: '#1e1f21', color: '#fff', border: '1px solid #555', borderRadius: '4px', padding: '6px', fontSize: '13px', boxSizing: 'border-box' }} />
+              )}
+            </div>
+          ))}
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '4px' }}>Priority</label>
+            <select value={obsPanel.priority} onChange={e => setObsPanel(p => ({ ...p, priority: e.target.value }))}
+              style={{ width: '100%', background: '#1e1f21', color: '#fff', border: '1px solid #555', borderRadius: '4px', padding: '6px', fontSize: '13px' }}>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="CRITICAL">Critical</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '4px' }}>Status</label>
+            <select value={obsPanel.status} onChange={e => setObsPanel(p => ({ ...p, status: e.target.value }))}
+              style={{ width: '100%', background: '#1e1f21', color: '#fff', border: '1px solid #555', borderRadius: '4px', padding: '6px', fontSize: '13px' }}>
+              <option value="OPEN">Open</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setObsPanel(null)} style={{ flex: 1, padding: '9px', border: '1px solid #555', borderRadius: '6px', background: 'transparent', color: '#fff', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+            <button onClick={saveObservation} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '6px', background: '#2563EB', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Save</button>
           </div>
         </div>
       )}
